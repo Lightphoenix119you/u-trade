@@ -90,6 +90,50 @@ export function OrderCard({ orderId, navigate, compact }: OrderCardProps) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Abonnement temps réel sur la commande elle-même : sans ça, seule la
+  // session qui déclenche l'action (ex. le vendeur qui valide l'OTP) voit
+  // le changement — une AUTRE session ouverte sur la même commande (l'autre
+  // partie, un autre onglet) ne serait jamais notifiée et resterait figée
+  // sur l'ancien statut indéfiniment, même après plusieurs correctifs sur
+  // la seule mise à jour optimiste locale.
+  //
+  // ⚠️ Ne fusionne QUE des champs explicitement sûrs — jamais payload.new
+  // en entier : il contient escrow_code/escrow_code_hash en clair, et les
+  // exposer ici recréerait la fuite déjà corrigée ailleurs (le vendeur
+  // pourrait alors lire le code sans jamais rencontrer l'acheteur).
+  useEffect(() => {
+    const channel = supabase
+      .channel(`order-status-${orderId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
+        (payload) => {
+          const safe = payload.new as Record<string, unknown>;
+          setOrder((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  status: safe.status as Order['status'],
+                  paid_at: safe.paid_at as string | null,
+                  delivered_at: safe.delivered_at as string | null,
+                  completed_at: safe.completed_at as string | null,
+                  disputed_at: safe.disputed_at as string | null,
+                  dispute_reason: safe.dispute_reason as string | null,
+                  dispute_requested_at: safe.dispute_requested_at as string | null,
+                  escrow_revealed_at: safe.escrow_revealed_at as string | null,
+                  updated_at: safe.updated_at as string,
+                }
+              : prev
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orderId]);
+
   // Le vendeur saisit le code de l'acheteur : vérifié côté serveur via la
   // RPC validate_escrow_otp (hash SHA-256, jamais le code en clair exposé
   // au vendeur). Remplace l'ancien appel à l'edge function "escrow", qui

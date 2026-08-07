@@ -5,7 +5,7 @@ import { CampusProvider, useCampus } from '@/context/CampusContext';
 import { CreateListingModalProvider } from '@/context/CreateListingModalContext';
 import { MeshBackground } from '@/components/MeshBackground';
 import { Header } from '@/components/Header';
-import { GlassCard } from '@/components/GlassCard';
+import { Footer } from '@/components/Footer';
 import { useHashRoute, parseRoute } from '@/lib/router';
 import { campusThemeVars } from '@/lib/format';
 
@@ -19,6 +19,7 @@ import { Messages } from '@/pages/Messages';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { AdminPage } from '@/pages/AdminPage';
 import { ShopsPage } from '@/pages/ShopsPage';
+import { AboutPage } from '@/pages/AboutPage';
 import { RequestCampusPage } from '@/pages/RequestCampusPage';
 import { MyShopPage } from '@/pages/MyShopPage';
 import { SellerProfilePage } from '@/pages/SellerProfilePage';
@@ -66,6 +67,8 @@ function AppContent() {
         return param ? <ListingDetail listingId={param} navigate={navigate} /> : <Marketplace navigate={navigate} />;
       case 'shops':
         return <ShopsPage navigate={navigate} />;
+      case 'about':
+        return <AboutPage navigate={navigate} />;
       case 'signin':
         return <AuthPage mode="signin" navigate={navigate} />;
       case 'signup':
@@ -139,24 +142,7 @@ function AppContent() {
       <div className="relative min-h-screen w-full max-w-full overflow-x-hidden">
         {!isAuthPage && <Header route={route} navigate={navigate} />}
         <main>{renderPage()}</main>
-        {!isAuthPage && (
-          <footer className="relative z-10 mt-12 border-t border-white/5 px-4 py-8 sm:px-6">
-            <div className="mx-auto max-w-7xl">
-              <GlassCard className="flex flex-col items-center justify-between gap-4 p-5 sm:flex-row">
-                <div className="flex items-center gap-2">
-                  <div className="campus-gradient flex h-7 w-7 items-center justify-center rounded-lg">
-                    <span className="text-sm font-black text-white">U</span>
-                  </div>
-                  <span className="text-sm font-semibold">U. Trade</span>
-                  <span className="text-xs text-white/30">University Trade</span>
-                </div>
-                <p className="text-xs text-white/30">
-                  Le marketplace étudiant sécurisé · Paiement OTP à la livraison
-                </p>
-              </GlassCard>
-            </div>
-          </footer>
-        )}
+        {!isAuthPage && <Footer navigate={navigate} />}
       </div>
     </CreateListingModalProvider>
   );

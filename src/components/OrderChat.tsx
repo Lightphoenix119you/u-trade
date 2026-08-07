@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Send, ShieldAlert, ShieldCheck, CheckCheck, BellRing, Lock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { detectBlockedContent, sanitizeText } from '@/lib/antiCircumvention';
+import {
+  detectBlockedContent, sanitizeText,
+  isLoneDigitMessage, wouldExceedLoneDigitLimit,
+} from '@/lib/antiCircumvention';
 import { messageSchema } from '@/lib/validation';
 import type { Message, Profile, OrderStatus } from '@/lib/types';
 
@@ -42,6 +45,9 @@ export function OrderChat({ orderId, otherUserId, orderStatus }: OrderChatProps)
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  // Pré-contrôle client (retour immédiat) contre l'envoi d'un numéro un
+  // chiffre par message — la vraie garantie reste le trigger serveur.
+  const recentLoneDigitSends = useRef<number[]>([]);
   const [unseenCount, setUnseenCount] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -178,6 +184,12 @@ export function OrderChat({ orderId, otherUserId, orderStatus }: OrderChatProps)
       return;
     }
 
+    const isLoneDigit = isLoneDigitMessage(trimmed);
+    if (isLoneDigit && wouldExceedLoneDigitLimit(recentLoneDigitSends.current)) {
+      setChatError('Trop de messages à un seul chiffre envoyés rapidement. Merci de patienter.');
+      return;
+    }
+
     setChatError(null);
     setSending(true);
 
@@ -204,6 +216,9 @@ export function OrderChat({ orderId, otherUserId, orderStatus }: OrderChatProps)
 
     if (error) {
       console.error('OrderChat: échec envoi message', error);
+      // Le trigger serveur peut aussi rejeter (garde-fou anti-spam même si
+      // le pré-contrôle client ci-dessus a été contourné) — ce message
+      // couvre les deux cas.
       setChatError(
         error.code === '42501' || error.message.toLowerCase().includes('row-level security')
           ? "Vous n'êtes pas autorisé à envoyer un message pour cette commande."
@@ -212,6 +227,11 @@ export function OrderChat({ orderId, otherUserId, orderStatus }: OrderChatProps)
       return;
     }
 
+    if (isLoneDigit) {
+      recentLoneDigitSends.current = [...recentLoneDigitSends.current, Date.now()].filter(
+        (t) => Date.now() - t < 30_000
+      );
+    }
     setInput('');
     setWarning(null);
     requestAnimationFrame(resizeTextarea);

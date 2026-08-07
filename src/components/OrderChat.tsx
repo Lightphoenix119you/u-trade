@@ -12,7 +12,7 @@ interface OrderChatProps {
   orderStatus: OrderStatus;
 }
 
-const LOCKED_STATUSES: OrderStatus[] = ['disputed', 'refunded', 'cancelled', 'completed'];
+const LOCKED_STATUSES = ['disputed', 'refunded', 'cancelled', 'completed', 'delivered', 'livré'];
 
 const MAX_TEXTAREA_HEIGHT = 128; // px, ~ max-h-32
 const MIN_TEXTAREA_HEIGHT = 40; // px, ~ 1 ligne
@@ -34,7 +34,7 @@ const MIN_TEXTAREA_HEIGHT = 40; // px, ~ 1 ligne
  */
 export function OrderChat({ orderId, otherUserId, orderStatus }: OrderChatProps) {
   const { user } = useAuth();
-  const isLocked = LOCKED_STATUSES.includes(orderStatus);
+  const isLocked = LOCKED_STATUSES.includes((orderStatus ?? '').toLowerCase());
   const [otherUser, setOtherUser] = useState<Profile | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');

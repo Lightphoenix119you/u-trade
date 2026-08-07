@@ -114,6 +114,10 @@ export function OrderCard({ orderId, navigate, compact }: OrderCardProps) {
       if (success) {
         setActionMsg('Paiement débloqué au vendeur ! Transaction complétée.');
         setOtpInput('');
+        // Mise à jour optimiste immédiate — ne dépend pas uniquement du
+        // re-fetch de load() ci-dessous pour refléter le nouveau statut à
+        // l'écran (badge, barre d'étapes, sections masquées).
+        setOrder((prev) => (prev ? { ...prev, status: 'completed', completed_at: new Date().toISOString() } : prev));
         load();
       } else {
         setActionError('Code incorrect.');
@@ -308,11 +312,18 @@ export function OrderCard({ orderId, navigate, compact }: OrderCardProps) {
   const isBuyer = user?.id === order.buyer_id;
   const isSeller = user?.id === order.seller_id;
   const listing = order.listing as Listing | undefined;
-  const currentStep = STATUS_FLOW.findIndex((s) => s.key === order.status);
   const isDisputed = order.status === 'disputed';
-  const isCompleted = order.status === 'completed';
+  // Accepte 'completed', 'delivered' et 'livré' comme équivalents partout
+  // dans ce composant — la RPC validate_escrow_otp ne pose actuellement
+  // que 'completed', mais cette vérification protège aussi contre une
+  // RPC modifiée ou toute autre valeur terminale.
+  const isDone = ['completed', 'delivered', 'livré'].includes((order.status ?? '').toLowerCase());
   const isRefunded = order.status === 'refunded';
   const isDisputePending = order.status === 'dispute_pending';
+  // 'delivered'/'livré' n'existent pas dans STATUS_FLOW : sans ce repli,
+  // findIndex renverrait -1 et la 3ème étape (le check ✔) ne se validerait
+  // jamais pour ces valeurs — seule 'completed' la déclencherait.
+  const currentStep = isDone ? STATUS_FLOW.length - 1 : STATUS_FLOW.findIndex((s) => s.key === order.status);
   const canEscalate =
     !!order.dispute_requested_at &&
     Date.now() - new Date(order.dispute_requested_at).getTime() > 24 * 60 * 60 * 1000;
@@ -338,13 +349,23 @@ export function OrderCard({ orderId, navigate, compact }: OrderCardProps) {
             <p className="text-xs text-white/40">{timeAgo(order.created_at)}</p>
           </div>
           <div className={`rounded-lg px-3 py-1 text-xs font-bold ${
-            isCompleted ? 'bg-emerald-500/20 text-emerald-300' :
+            isDone ? 'bg-emerald-500/20 text-emerald-300' :
             isDisputed ? 'bg-red-500/20 text-red-300' :
             isDisputePending ? 'bg-amber-500/20 text-amber-300' :
             isRefunded ? 'bg-orange-500/20 text-orange-300' :
             'bg-white/10 text-white/60'
           }`}>
-            {isDisputed ? 'LITIGE' : isDisputePending ? "DEMANDE D'ANNULATION" : isCompleted ? 'COMPLÉTÉE / LIVRÉE' : isRefunded ? 'REMBOURSÉE' : order.status === 'paid' ? 'EN LIVRAISON' : 'EN COURS'}
+            {isDisputed
+              ? 'LITIGE'
+              : isDisputePending
+              ? "DEMANDE D'ANNULATION"
+              : isDone
+              ? (['delivered', 'livré'].includes((order.status ?? '').toLowerCase()) ? 'LIVRÉ' : 'COMPLÉTÉ')
+              : isRefunded
+              ? 'REMBOURSÉE'
+              : order.status === 'paid'
+              ? 'EN LIVRAISON'
+              : 'EN COURS'}
           </div>
         </div>
 
@@ -604,7 +625,7 @@ export function OrderCard({ orderId, navigate, compact }: OrderCardProps) {
       )}
 
       {/* Dispute */}
-      {(isBuyer || isSeller) && !isCompleted && !isDisputed && !isDisputePending && !isRefunded && order.status !== 'pending_payment' && (
+      {(isBuyer || isSeller) && !isDone && !isDisputed && !isDisputePending && !isRefunded && order.status !== 'pending_payment' && (
         <div className="mb-4">
           {!showDispute ? (
             <button
@@ -644,7 +665,7 @@ export function OrderCard({ orderId, navigate, compact }: OrderCardProps) {
         </GlassCard>
       )}
 
-      {isCompleted && (
+      {isDone && (
         <GlassCard className="p-4 border-emerald-500/20">
           <div className="flex items-center gap-2 text-sm text-emerald-300">
             <CheckCircle className="h-5 w-5" /><span className="font-semibold">Transaction complétée / Livrée</span>
@@ -657,7 +678,7 @@ export function OrderCard({ orderId, navigate, compact }: OrderCardProps) {
 
       {/* Avis — uniquement l'acheteur, uniquement une fois la commande
           complétée, un seul avis par commande (contrainte unique côté base) */}
-      {isCompleted && isBuyer && reviewLoaded && (
+      {isDone && isBuyer && reviewLoaded && (
         <GlassCard className="mt-4 p-4">
           {existingReview ? (
             <div>

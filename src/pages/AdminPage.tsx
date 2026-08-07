@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   LayoutDashboard, Building2, DollarSign, Shield, Settings, Image as ImageIcon,
   Plus, Edit2, Save, X, Trash2, Check, TrendingUp, Wallet,
-  Users, Flag, Ban, AlertTriangle, Package, MessageCircle, PauseCircle,
+  Users, Flag, Ban, AlertTriangle, Package, MessageCircle, PauseCircle, UserCog, ShieldOff, Search,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -12,14 +12,14 @@ import { ImageUploader } from '@/components/ImageUploader';
 import { getCampusIcon } from '@/components/CampusIcons';
 import { campusSchema, hubSchema, settingsSchema, adBannerSchema } from '@/lib/validation';
 import { formatUSD, slugify } from '@/lib/format';
-import type { Campus, CampusHub, Transaction, Report, PhoneBlacklist, AdBanner, AppSettings, Shop, Order, CampusRequest, Listing, AdminMember, AdminPermission } from '@/lib/types';
+import type { Campus, CampusHub, Transaction, Report, PhoneBlacklist, AdBanner, AppSettings, Shop, Order, CampusRequest, Listing, AdminMember, AdminPermission, AdminUser } from '@/lib/types';
 
 interface AdminProps {
   navigate: (path: string) => void;
   setFlash: (flash: { type: 'error' | 'success' | 'info'; message: string }) => void;
 }
 
-type AdminTab = 'overview' | 'campuses' | 'financial' | 'moderation' | 'team' | 'settings' | 'ads';
+type AdminTab = 'overview' | 'campuses' | 'financial' | 'moderation' | 'team' | 'users' | 'settings' | 'ads';
 
 export function AdminPage({ navigate, setFlash }: AdminProps) {
   const { profile, loading } = useAuth();
@@ -70,6 +70,7 @@ export function AdminPage({ navigate, setFlash }: AdminProps) {
     { key: 'financial', label: 'Finances', icon: DollarSign, superAdminOnly: true },
     { key: 'moderation', label: 'Modération', icon: Shield },
     { key: 'team', label: 'Équipe & Modération', icon: Users, superAdminOnly: true },
+    { key: 'users', label: 'Utilisateurs', icon: UserCog, superAdminOnly: true },
     { key: 'settings', label: 'Paramètres', icon: Settings, superAdminOnly: true },
     { key: 'ads', label: 'Publicités', icon: ImageIcon },
   ];
@@ -105,6 +106,7 @@ export function AdminPage({ navigate, setFlash }: AdminProps) {
       {tab === 'financial' && isSuperAdmin && <FinancialTab />}
       {tab === 'moderation' && <ModerationTab setError={setError} setMsg={setMsg} isSuperAdmin={isSuperAdmin} campusId={profile.campus_id} />}
       {tab === 'team' && isSuperAdmin && <TeamTab setError={setError} setMsg={setMsg} />}
+      {tab === 'users' && isSuperAdmin && <UsersTab setError={setError} setMsg={setMsg} />}
       {tab === 'settings' && isSuperAdmin && <SettingsTab setError={setError} setMsg={setMsg} refresh={refreshSettings} />}
       {tab === 'ads' && <AdsTab setError={setError} setMsg={setMsg} isSuperAdmin={isSuperAdmin} campusId={profile.campus_id} />}
     </div>
@@ -1293,6 +1295,208 @@ function TeamTab({ setError, setMsg }: { setError: (s: string | null) => void; s
     </div>
   );
 
+}
+
+// ============================================================
+// UTILISATEURS (Super Admin)
+// ============================================================
+function UsersTab({ setError, setMsg }: { setError: (s: string | null) => void; setMsg: (s: string | null) => void }) {
+  const { user: currentUser } = useAuth();
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'campus_admin' | 'super_admin'>('all');
+  const [pendingAction, setPendingAction] = useState<
+    { type: 'role'; target: AdminUser; newRole: 'user' | 'campus_admin' } | { type: 'status'; target: AdminUser; suspend: boolean } | null
+  >(null);
+  const [confirming, setConfirming] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data, error: err } = await supabase.rpc('get_all_users');
+    if (err) {
+      setError(err.message);
+    } else {
+      setUsers((data as AdminUser[]) || []);
+    }
+    setLoading(false);
+  }, [setError]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = users.filter((u) => {
+    const matchesSearch =
+      !search.trim() ||
+      u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      u.email?.toLowerCase().includes(search.toLowerCase());
+    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
+
+  const confirmPendingAction = async () => {
+    if (!pendingAction) return;
+    setError(null);
+    setConfirming(true);
+    const { error: err } =
+      pendingAction.type === 'role'
+        ? await supabase.rpc('update_user_role', { target_user_id: pendingAction.target.id, new_role: pendingAction.newRole })
+        : await supabase.rpc('toggle_user_status', { target_user_id: pendingAction.target.id, is_suspended: pendingAction.suspend });
+    setConfirming(false);
+    if (err) { setError(err.message); setPendingAction(null); return; }
+    setMsg(pendingAction.type === 'role' ? 'Rôle mis à jour' : pendingAction.suspend ? 'Compte suspendu' : 'Compte réactivé');
+    setPendingAction(null);
+    load();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">
+          Utilisateurs <span className="text-sm font-normal text-white/40">({users.length} inscrits)</span>
+        </h2>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher par nom ou email..."
+            className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-3 text-sm outline-none focus:border-white/30"
+          />
+        </div>
+        <div className="flex gap-1 rounded-lg bg-white/5 p-1">
+          {(['all', 'user', 'campus_admin', 'super_admin'] as const).map((r) => (
+            <button
+              key={r}
+              onClick={() => setRoleFilter(r)}
+              className={`rounded-md px-2.5 py-1.5 text-xs font-medium ${roleFilter === r ? 'bg-white/10 text-white' : 'text-white/50'}`}
+            >
+              {r === 'all' ? 'Tous' : r}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-white/40">Chargement...</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-white/40">Aucun utilisateur ne correspond</p>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((u) => {
+            const isSelf = u.id === currentUser?.id;
+            return (
+              <GlassCard key={u.id} className="p-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    {u.avatar_url ? (
+                      <img src={u.avatar_url} alt="" className="h-9 w-9 flex-shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-bold">
+                        {u.full_name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 text-sm font-medium">
+                        <span className="truncate">{u.full_name || 'Sans nom'}</span>
+                        {isSelf && <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-white/50">Vous</span>}
+                      </div>
+                      <div className="truncate text-xs text-white/40">{u.email}</div>
+                      <div className="text-[11px] text-white/30">
+                        Inscrit le {new Date(u.created_at).toLocaleDateString('fr-FR')}
+                        {u.last_sign_in_at && ` · vu le ${new Date(u.last_sign_in_at).toLocaleDateString('fr-FR')}`}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-shrink-0 flex-wrap items-center gap-1.5">
+                    <span className={`rounded-md px-2 py-1 text-[11px] font-bold ${
+                      u.role === 'super_admin' ? 'bg-cyan-500/20 text-cyan-300' :
+                      u.role === 'campus_admin' ? 'bg-emerald-500/20 text-emerald-300' :
+                      'bg-white/10 text-white/50'
+                    }`}>
+                      {u.role}
+                    </span>
+                    {u.is_suspended && (
+                      <span className="rounded-md bg-red-500/20 px-2 py-1 text-[11px] font-bold text-red-300">Suspendu</span>
+                    )}
+
+                    {!isSelf && u.role !== 'super_admin' && (
+                      <>
+                        {u.role === 'user' ? (
+                          <button
+                            onClick={() => setPendingAction({ type: 'role', target: u, newRole: 'campus_admin' })}
+                            className="rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-white/70 hover:bg-white/15"
+                          >
+                            Promouvoir Admin
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setPendingAction({ type: 'role', target: u, newRole: 'user' })}
+                            className="rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-white/70 hover:bg-white/15"
+                          >
+                            Rétrograder
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setPendingAction({ type: 'status', target: u, suspend: !u.is_suspended })}
+                          className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${
+                            u.is_suspended ? 'bg-emerald-500/80 text-white' : 'border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20'
+                          }`}
+                        >
+                          <ShieldOff className="h-3 w-3" /> {u.is_suspended ? 'Réactiver' : 'Suspendre'}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </GlassCard>
+            );
+          })}
+        </div>
+      )}
+
+      {pendingAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => !confirming && setPendingAction(null)} />
+          <div className="glass-strong relative z-10 w-full max-w-sm rounded-2xl border border-amber-500/20 p-6 shadow-2xl">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15">
+              <AlertTriangle className="h-6 w-6 text-amber-400" />
+            </div>
+            <h3 className="text-center text-base font-bold">Confirmer l'action</h3>
+            <p className="mt-2 text-center text-sm text-white/60">
+              {pendingAction.type === 'role' ? (
+                <>Changer le rôle de <strong>{pendingAction.target.full_name || pendingAction.target.email}</strong> modifie ses accès sur la plateforme.</>
+              ) : pendingAction.suspend ? (
+                <>Suspendre <strong>{pendingAction.target.full_name || pendingAction.target.email}</strong> l'empêchera immédiatement de se connecter.</>
+              ) : (
+                <>Réactiver <strong>{pendingAction.target.full_name || pendingAction.target.email}</strong> lui rendra l'accès à son compte.</>
+              )}
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setPendingAction(null)}
+                disabled={confirming}
+                className="glass flex-1 rounded-lg py-2.5 text-sm font-medium disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmPendingAction}
+                disabled={confirming}
+                className="flex-1 rounded-lg bg-amber-500/90 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:opacity-50"
+              >
+                {confirming ? 'Confirmation...' : 'Confirmer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ============================================================

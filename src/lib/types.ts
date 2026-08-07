@@ -215,6 +215,17 @@ export interface Message {
 
 export type AdminPermission = 'manage_products' | 'manage_reviews' | 'handle_disputes' | 'manage_users' | 'view_financials';
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  role: 'user' | 'campus_admin' | 'super_admin';
+  is_suspended: boolean;
+}
+
 export interface AdminMember {
   id: string;
   user_id: string;

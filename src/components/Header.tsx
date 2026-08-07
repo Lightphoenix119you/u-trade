@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShoppingBag, Home, Store, MessageSquare, LayoutDashboard, LogOut, Plus } from 'lucide-react';
+import { ShoppingBag, Home, Store, MessageSquare, LayoutDashboard, LogOut, Plus, Info } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { CampusSelector } from '@/components/CampusSelector';
@@ -22,6 +22,7 @@ export function Header({ route, navigate }: HeaderProps) {
     { label: 'Marché', icon: ShoppingBag, path: '/market', match: (r: string) => r.startsWith('/market') },
     { label: 'Boutiques', icon: Store, path: '/shops', match: (r: string) => r.startsWith('/shops') },
     { label: 'Messages', icon: MessageSquare, path: '/messages', match: (r: string) => r.startsWith('/messages') },
+    { label: 'À propos', icon: Info, path: '/about', match: (r: string) => r.startsWith('/about') },
   ];
 
   // Helper pour obtenir l'URL complète de l'avatar

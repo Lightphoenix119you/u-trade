@@ -66,6 +66,33 @@ export function MyShopPage({ navigate }: MyShopPageProps) {
     );
   }
 
+  const isAdmin = profile.role === 'campus_admin' || profile.role === 'super_admin';
+  if (!isAdmin) {
+    return (
+      <div className="relative z-10 mx-auto flex min-h-[70vh] max-w-2xl flex-col items-center justify-center px-4 text-center sm:px-6">
+        <div className="glass-strong flex flex-col items-center rounded-2xl border border-white/10 p-10">
+          <div className="mb-4 flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-white/60">
+            <Clock className="h-3.5 w-3.5 campus-text" /> Bientôt disponible
+          </div>
+          <div className="campus-gradient mb-5 flex h-16 w-16 items-center justify-center rounded-2xl">
+            <Store className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-xl font-bold">Création de boutique bientôt disponible !</h1>
+          <p className="mt-2 max-w-sm text-sm text-white/50">
+            Cette fonctionnalité sera bientôt disponible très prochainement, pour permettre aux
+            créateurs et étudiants d'ouvrir leur propre vitrine sur U. Trade. Reviens vite !
+          </p>
+          <button
+            onClick={() => navigate('/market')}
+            className="campus-gradient mt-6 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            Explorer le marché
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">

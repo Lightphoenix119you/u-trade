@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { ArrowRight, ShoppingBag, Store, Shield, Zap, Sparkles, TrendingUp, MapPin, Smartphone, Clock } from 'lucide-react';
+import { ArrowRight, ShoppingBag, Store, Shield, Zap, Sparkles, TrendingUp, MapPin, Smartphone } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useCampus } from '@/context/CampusContext';
@@ -211,14 +211,30 @@ export function Home({ navigate }: HomeProps) {
             </div>
           </GlassCard>
         ) : (
-          <GlassCard className="p-6 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
-              <Clock className="h-6 w-6 campus-text" />
+          <GlassCard className="p-6 text-center" strong>
+            <div className="campus-gradient mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl">
+              <Smartphone className="h-6 w-6 text-white" />
             </div>
-            <h2 className="text-lg font-semibold">App bientôt disponible</h2>
+            <h2 className="text-lg font-semibold">L'application U. Trade arrive bientôt !</h2>
             <p className="mt-1 text-sm text-white/40">
-              L'application mobile U. Trade est en préparation — reviens bientôt pour la télécharger.
+              Les versions Android et iOS sont en cours de développement. Restez à l'affût !
             </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <button
+                disabled
+                aria-disabled="true"
+                className="campus-gradient cursor-not-allowed rounded-xl px-5 py-2.5 text-sm font-semibold text-white opacity-75 pointer-events-none"
+              >
+                Bientôt sur Android
+              </button>
+              <button
+                disabled
+                aria-disabled="true"
+                className="glass cursor-not-allowed rounded-xl px-5 py-2.5 text-sm font-semibold opacity-75 pointer-events-none"
+              >
+                Bientôt sur iOS
+              </button>
+            </div>
           </GlassCard>
         )}
       </section>

@@ -199,12 +199,12 @@ export function Home({ navigate }: HomeProps) {
             <p className="mt-1 text-sm text-white/40">Téléchargez-la pour une expérience encore plus fluide</p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               {APP_DOWNLOAD_URL_ANDROID && (
-                <a href={APP_DOWNLOAD_URL_ANDROID} target="_blank" rel="noreferrer" className="campus-gradient rounded-xl px-5 py-2.5 text-sm font-semibold text-white">
+                <a href={APP_DOWNLOAD_URL_ANDROID} target="_self" rel="noreferrer" className="campus-gradient rounded-xl px-5 py-2.5 text-sm font-semibold text-white">
                   Bientôt sur Android
                 </a>
               )}
               {APP_DOWNLOAD_URL_IOS && (
-                <a href={APP_DOWNLOAD_URL_IOS} target="_blank" rel="noreferrer" className="glass rounded-xl px-5 py-2.5 text-sm font-semibold">
+                <a href={APP_DOWNLOAD_URL_IOS} target="_self" rel="noreferrer" className="glass rounded-xl px-5 py-2.5 text-sm font-semibold">
                   Bientôt sur iOS
                 </a>
               )}

@@ -37,28 +37,44 @@ export function useNotifications() {
   // (fait dans 008_notifications.sql) — sinon cet abonnement ne reçoit rien,
   // sans erreur visible.
   useEffect(() => {
-    if (!user) return;
+    // Garde explicite sur user?.id (pas juste `user`) : tant que ce n'est
+    // pas une chaîne valide, on ne construit même pas le nom du canal ni le
+    // filtre — impossible de se retrouver avec `user_id=eq.undefined`.
+    const uid = user?.id;
+    if (!uid) return;
+
+    // Filet de sécurité client, en plus du filtre serveur : même si un
+    // événement passait malgré tout (mauvais filtre, RLS mal appliquée à la
+    // diffusion...), on ignore silencieusement tout ce qui n'appartient pas
+    // réellement à cet utilisateur avant de toucher au state React. Cette
+    // vérification ne dépend d'aucune hypothèse sur la cause exacte d'une
+    // éventuelle fuite — elle garantit juste que l'affichage, lui, ne fuira
+    // jamais, quoi qu'il arrive en amont.
+    const belongsToMe = (row: { user_id?: string }) => row.user_id === uid;
 
     const channel = supabase
-      .channel(`notifications-${user.id}`)
+      .channel(`notifications-${uid}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${uid}` },
         (payload) => {
-          setNotifications((prev) => [payload.new as Notification, ...prev]);
+          const incoming = payload.new as Notification;
+          if (!belongsToMe(incoming)) return;
+          setNotifications((prev) => [incoming, ...prev]);
         }
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${uid}` },
         (payload) => {
           const updated = payload.new as Notification;
+          if (!belongsToMe(updated)) return;
           setNotifications((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
         }
       )
       .on(
         'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        { event: 'DELETE', schema: 'public', table: 'notifications', filter: `user_id=eq.${uid}` },
         (payload) => {
           const deletedId = (payload.old as { id: string }).id;
           setNotifications((prev) => prev.filter((n) => n.id !== deletedId));

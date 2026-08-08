@@ -15,8 +15,6 @@ interface HomeProps {
 
 export function Home({ navigate }: HomeProps) {
   const { user, loading } = useAuth();
-  // 🔍 DEBUG TEMPORAIRE — à retirer une fois le diagnostic terminé.
-  console.log('[Home.tsx debug] user =', user, '| loading =', loading);
   const { campuses, selectedCampus } = useCampus();
   const { openCreateListingModal } = useCreateListingModal();
   const [stats, setStats] = useState({ listings: 0, shops: 0 });
@@ -174,11 +172,12 @@ export function Home({ navigate }: HomeProps) {
 
       {/* Footer info */}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-        {/* 🔍 DEBUG TEMPORAIRE — à retirer une fois le diagnostic terminé. */}
-        <p className="mb-2 rounded-lg bg-red-500/20 p-2 text-center text-xs text-red-300">
-          DEBUG — user: {user ? `connecté (${user.id.slice(0, 8)}...)` : 'null/undefined'} | loading: {String(loading)}
-        </p>
-        {!user ? (
+        {loading ? (
+          // Évite le flash "Créer un compte" pendant la brève fenêtre où la
+          // session est encore en cours de restauration (user pas encore
+          // peuplé même pour quelqu'un de déjà connecté).
+          <div className="skeleton h-40 rounded-2xl" />
+        ) : !user ? (
           <GlassCard className="p-6 text-center" strong>
             <h2 className="text-lg font-semibold">Prêt à rejoindre la communauté ?</h2>
             <p className="mt-1 text-sm text-white/40">

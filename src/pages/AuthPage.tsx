@@ -3,8 +3,8 @@ import { Mail, Lock, User, Phone, Eye, EyeOff, AlertCircle, ArrowRight } from 'l
 import { useAuth } from '@/context/AuthContext';
 import { useCampus } from '@/context/CampusContext';
 import { signInSchema, signUpSchema } from '@/lib/validation';
-import { getCampusIcon } from '@/components/CampusIcons';
 import { GlassCard } from '@/components/GlassCard';
+import { CampusSelector } from '@/components/CampusSelector';
 
 interface AuthPageProps {
   mode: 'signin' | 'signup';
@@ -170,26 +170,12 @@ export function AuthPage({ mode, navigate }: AuthPageProps) {
             {mode === 'signup' && (
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-white/70">Votre campus</label>
-                <div className="grid grid-cols-1 gap-2">
-                  {campuses.map((campus) => {
-                    const Icon = getCampusIcon(campus.icon_name);
-                    const active = form.campus_id === campus.id;
-                    return (
-                      <button
-                        key={campus.id}
-                        type="button"
-                        onClick={() => update('campus_id', campus.id)}
-                        className={`flex items-center gap-3 rounded-lg border p-3 text-left text-sm transition ${
-                          active ? 'border-white/30 bg-white/10' : 'border-white/10 bg-white/5 hover:border-white/20'
-                        }`}
-                        style={active ? { borderColor: campus.primary_color } : undefined}
-                      >
-                        <Icon className="h-5 w-5" style={{ color: campus.accent_color }} />
-                        <span className="font-medium">{campus.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <CampusSelector
+                  inline
+                  hideAllOption
+                  value={form.campus_id}
+                  onChange={(id) => update('campus_id', id)}
+                />
               </div>
             )}
 

@@ -8,7 +8,7 @@ export const signUpSchema = z.object({
   password: z.string().min(6, 'Mot de passe: 6 caractères minimum'),
   full_name: z.string().min(2, 'Nom requis'),
   phone: z.string().regex(phoneRegex, 'Numéro congolais requis (ex: 0812345678)'),
-  campus_id: z.string().uuid('Campus requis'),
+  campus_id: z.string().uuid('Campus requis').nullable(),
 });
 
 export const signInSchema = z.object({
@@ -89,21 +89,6 @@ export const hubSchema = z.object({
   description: z.string().max(500).optional(),
 });
 
-export const campusRequestSchema = z.object({
-  university_name: z.string().min(2, 'Nom trop court').max(150),
-  city: z.string().min(2, 'Ville requise').max(60),
-  contact_info: z.string().min(3, 'Un contact est requis (email ou téléphone)').max(150),
-  suggested_meeting_points: z
-    .array(
-      z.object({
-        name: z.string().min(2, 'Nom du point requis').max(120),
-        description: z.string().max(300).optional(),
-      }),
-    )
-    .max(10)
-    .default([]),
-});
-
 export const adBannerSchema = z.object({
   title: z.string().min(2).max(120),
   image_url: z.string().url('URL image requise'),
@@ -136,6 +121,12 @@ export type ReportInput = z.infer<typeof reportSchema>;
 export type OrderCreateInput = z.infer<typeof orderCreateSchema>;
 export type CampusInput = z.infer<typeof campusSchema>;
 export type HubInput = z.infer<typeof hubSchema>;
-export type CampusRequestInput = z.infer<typeof campusRequestSchema>;
 export type AdBannerInput = z.infer<typeof adBannerSchema>;
 export type SettingsInput = z.infer<typeof settingsSchema>;
+export const campusRequestSchema = z.object({
+  campusName: z.string().min(2, "Le nom du campus est requis"),
+  city: z.string().min(2, "La ville est requise"),
+  studentCount: z.string().optional(),
+  email: z.string().email("Email invalide"),
+  comments: z.string().optional(),
+});

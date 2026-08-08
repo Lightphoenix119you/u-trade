@@ -1,17 +1,20 @@
 import { useEffect, useState, useCallback } from 'react';
-import { ArrowRight, ShoppingBag, Store, Shield, Zap, Sparkles, TrendingUp, MapPin } from 'lucide-react';
+import { ArrowRight, ShoppingBag, Store, Shield, Zap, Sparkles, TrendingUp, MapPin, Smartphone, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 import { useCampus } from '@/context/CampusContext';
 import { useCreateListingModal } from '@/context/CreateListingModalContext';
 import { GlassCard } from '@/components/GlassCard';
 import { ListingGrid } from '@/components/ListingGrid';
 import { getCampusIcon } from '@/components/CampusIcons';
+import { IS_APP_RELEASED, APP_DOWNLOAD_URL_ANDROID, APP_DOWNLOAD_URL_IOS } from '@/lib/config';
 
 interface HomeProps {
   navigate: (path: string) => void;
 }
 
 export function Home({ navigate }: HomeProps) {
+  const { user } = useAuth();
   const { campuses, selectedCampus } = useCampus();
   const { openCreateListingModal } = useCreateListingModal();
   const [stats, setStats] = useState({ listings: 0, shops: 0 });
@@ -169,18 +172,50 @@ export function Home({ navigate }: HomeProps) {
 
       {/* Footer info */}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-        <GlassCard className="p-6 text-center" strong>
-          <h2 className="text-lg font-semibold">Prêt à rejoindre la communauté ?</h2>
-          <p className="mt-1 text-sm text-white/40">
-            Inscrivez-vous gratuitement et commencez à acheter et vendre en toute sécurité
-          </p>
-          <button
-            onClick={() => navigate('/signup')}
-            className="campus-gradient mt-4 rounded-xl px-6 py-2.5 text-sm font-semibold text-white"
-          >
-            Créer un compte
-          </button>
-        </GlassCard>
+        {!user ? (
+          <GlassCard className="p-6 text-center" strong>
+            <h2 className="text-lg font-semibold">Prêt à rejoindre la communauté ?</h2>
+            <p className="mt-1 text-sm text-white/40">
+              Inscrivez-vous gratuitement et commencez à acheter et vendre en toute sécurité
+            </p>
+            <button
+              onClick={() => navigate('/signup')}
+              className="campus-gradient mt-4 rounded-xl px-6 py-2.5 text-sm font-semibold text-white"
+            >
+              Créer un compte
+            </button>
+          </GlassCard>
+        ) : IS_APP_RELEASED ? (
+          <GlassCard className="p-6 text-center" strong>
+            <div className="campus-gradient mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl">
+              <Smartphone className="h-6 w-6 text-white" />
+            </div>
+            <h2 className="text-lg font-semibold">L'application U. Trade est disponible !</h2>
+            <p className="mt-1 text-sm text-white/40">Téléchargez-la pour une expérience encore plus fluide</p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              {APP_DOWNLOAD_URL_ANDROID && (
+                <a href={APP_DOWNLOAD_URL_ANDROID} target="_blank" rel="noreferrer" className="campus-gradient rounded-xl px-5 py-2.5 text-sm font-semibold text-white">
+                  Télécharger sur Android
+                </a>
+              )}
+              {APP_DOWNLOAD_URL_IOS && (
+                <a href={APP_DOWNLOAD_URL_IOS} target="_blank" rel="noreferrer" className="glass rounded-xl px-5 py-2.5 text-sm font-semibold">
+                  Télécharger sur iOS
+                </a>
+              )}
+            </div>
+          </GlassCard>
+        ) : (
+          <GlassCard className="p-6 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
+              <Clock className="h-6 w-6 campus-text" />
+            </div>
+            <h2 className="text-lg font-semibold">App bientôt disponible</h2>
+            <p className="mt-1 text-sm text-white/40">
+              L'application mobile U. Trade est en préparation — reviens bientôt pour la télécharger.
+            </p>
+          </GlassCard>
+        )}
       </section>
     </div>
   );

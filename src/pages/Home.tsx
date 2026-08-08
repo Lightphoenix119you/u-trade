@@ -200,12 +200,12 @@ export function Home({ navigate }: HomeProps) {
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               {APP_DOWNLOAD_URL_ANDROID && (
                 <a href={APP_DOWNLOAD_URL_ANDROID} target="_blank" rel="noreferrer" className="campus-gradient rounded-xl px-5 py-2.5 text-sm font-semibold text-white">
-                  Télécharger sur Android
+                  Bientôt sur Android
                 </a>
               )}
               {APP_DOWNLOAD_URL_IOS && (
                 <a href={APP_DOWNLOAD_URL_IOS} target="_blank" rel="noreferrer" className="glass rounded-xl px-5 py-2.5 text-sm font-semibold">
-                  Télécharger sur iOS
+                  Bientôt sur iOS
                 </a>
               )}
             </div>

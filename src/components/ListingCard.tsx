@@ -142,6 +142,27 @@ export function ListingCard({ listing, onClick, onStatusChange }: ListingCardPro
             </span>
           </div>
 
+          {/* Badge vendeur discret — coin bas-droite (le seul libre : haut-gauche a
+              les badges Boost/Urgent, bas-gauche la catégorie, haut-droite le menu ⋮) */}
+          {listing.seller && (
+            <div className="absolute right-2 bottom-2 flex items-center gap-1.5 rounded-full bg-black/50 py-0.5 pl-0.5 pr-2 backdrop-blur">
+              {listing.seller.avatar_url ? (
+                <img
+                  src={listing.seller.avatar_url}
+                  alt={listing.seller.full_name || 'Vendeur'}
+                  className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-[9px] font-bold text-white">
+                  {listing.seller.full_name?.charAt(0)?.toUpperCase() || '?'}
+                </div>
+              )}
+              <span className="max-w-[70px] truncate text-[10px] font-medium text-white/90">
+                {listing.seller.full_name || 'Vendeur'}
+              </span>
+            </div>
+          )}
+
           {/* Déclencheur du menu vendeur — le menu lui-même est rendu hors de la carte (voir plus bas), pour échapper aux overflow-hidden imbriqués */}
           {isOwner && (
             <button

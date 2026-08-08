@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
-import { ArrowRight, ShoppingBag, Store, Shield, Zap, Sparkles, TrendingUp, MapPin, Smartphone } from 'lucide-react';
+import { ShoppingBag, Store, Shield, Zap, Sparkles, TrendingUp, Smartphone } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useCampus } from '@/context/CampusContext';
 import { useCreateListingModal } from '@/context/CreateListingModalContext';
 import { GlassCard } from '@/components/GlassCard';
 import { ListingGrid } from '@/components/ListingGrid';
-import { getCampusIcon } from '@/components/CampusIcons';
+import { CampusSelector } from '@/components/CampusSelector';
 import { IS_APP_RELEASED, APP_DOWNLOAD_URL_ANDROID, APP_DOWNLOAD_URL_IOS } from '@/lib/config';
 
 interface HomeProps {
@@ -123,36 +123,7 @@ export function Home({ navigate }: HomeProps) {
             Voir tout
           </button>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {campuses.map((campus) => {
-            const Icon = getCampusIcon(campus.icon_name);
-            return (
-              <button key={campus.id} onClick={() => navigate('/market')} className="text-left">
-                <GlassCard className="p-5" >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl"
-                      style={{ backgroundColor: `${campus.primary_color}25`, color: campus.accent_color }}
-                    >
-                      {campus.logo_url ? (
-                        <img src={campus.logo_url} alt={campus.name} className="h-full w-full object-cover rounded-xl" />
-                      ) : (
-                        <Icon className="h-6 w-6" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="truncate font-semibold text-sm">{campus.name}</h3>
-                      <div className="flex items-center gap-1 text-xs text-white/40">
-                        <MapPin className="h-3 w-3" /> {campus.city}
-                      </div>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-white/30" />
-                  </div>
-                </GlassCard>
-              </button>
-            );
-          })}
-        </div>
+        <CampusSelector inline />
       </section>
 
       {/* Featured listings */}
@@ -199,13 +170,13 @@ export function Home({ navigate }: HomeProps) {
             <p className="mt-1 text-sm text-white/40">Téléchargez-la pour une expérience encore plus fluide</p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               {APP_DOWNLOAD_URL_ANDROID && (
-                <a href={APP_DOWNLOAD_URL_ANDROID} target="_self" rel="noreferrer" className="campus-gradient rounded-xl px-5 py-2.5 text-sm font-semibold text-white">
-                  Bientôt sur Android
+                <a href={APP_DOWNLOAD_URL_ANDROID} target="_blank" rel="noreferrer" className="campus-gradient rounded-xl px-5 py-2.5 text-sm font-semibold text-white">
+                  Télécharger sur Android
                 </a>
               )}
               {APP_DOWNLOAD_URL_IOS && (
-                <a href={APP_DOWNLOAD_URL_IOS} target="_self" rel="noreferrer" className="glass rounded-xl px-5 py-2.5 text-sm font-semibold">
-                  Bientôt sur iOS
+                <a href={APP_DOWNLOAD_URL_IOS} target="_blank" rel="noreferrer" className="glass rounded-xl px-5 py-2.5 text-sm font-semibold">
+                  Télécharger sur iOS
                 </a>
               )}
             </div>

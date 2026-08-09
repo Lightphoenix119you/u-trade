@@ -138,7 +138,7 @@ export function AuthPage({ mode, navigate }: AuthPageProps) {
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
                   <input
-                    type="tel"
+                    type="text"
                     value={form.phone}
                     onChange={(e) => update('phone', e.target.value)}
                     placeholder="0812345678"

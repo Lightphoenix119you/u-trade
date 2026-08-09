@@ -463,7 +463,11 @@ export function ListingDetail({ listingId, navigate }: ListingDetailProps) {
               <div className="mt-0.5 flex items-center gap-3 text-xs text-white/40">
                 <span className="flex items-center gap-1">
                   <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                  {listing.seller.reputation_score?.toFixed(1) || '0.0'} ({listing.seller.total_reviews} avis)
+                  {(() => {
+                    const rating = listing.seller.rating ?? listing.seller.reputation_score ?? 0.0;
+                    const reviewsCount = listing.seller.reviews_count ?? listing.seller.total_reviews ?? 0;
+                    return `${Number(rating).toFixed(1)} (${reviewsCount} avis)`;
+                  })()}
                 </span>
                 <span>{listing.seller.total_sales} vente{listing.seller.total_sales > 1 ? 's' : ''}</span>
                 <span>Inscrit {timeAgo(listing.seller.created_at)}</span>

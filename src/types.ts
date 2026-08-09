@@ -39,19 +39,6 @@ export interface Campus {
   created_at: string;
 }
 
-export interface MeetingPointSuggestion {
-  id: string;
-  campus_id: string;
-  campus_name: string;
-  name: string;
-  description: string;
-  proposed_by: string;
-  proposed_by_name: string;
-  status: 'pending' | 'approved' | 'rejected';
-  vote_count: number;
-  created_at: string;
-}
-
 export interface CampusRequest {
   id: string;
   requested_by: string;
@@ -88,6 +75,12 @@ export interface Profile {
   avatar_url: string | null;
   bio: string | null;
   reputation_score: number;
+  // Ces deux champs n'existent pas dans le schéma actuel (profiles n'a que
+  // reputation_score/total_reviews) — optionnels ici uniquement pour
+  // permettre une lecture défensive côté frontend sans erreur TypeScript,
+  // au cas où un nommage différent serait introduit un jour.
+  rating?: number;
+  reviews_count?: number;
   is_verified_seller: boolean;
   is_certified_creator: boolean;
   total_sales: number;

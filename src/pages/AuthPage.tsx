@@ -134,14 +134,16 @@ export function AuthPage({ mode, navigate }: AuthPageProps) {
 
             {mode === 'signup' && (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-white/70">Numéro de téléphone</label>
+                <label className="mb-1.5 block text-sm font-medium text-white/70">
+                  Numéro de téléphone{isGuest && <span className="font-normal text-white/40"> (Optionnel)</span>}
+                </label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
                   <input
                     type="text"
                     value={form.phone}
                     onChange={(e) => update('phone', e.target.value)}
-                    placeholder="0812345678"
+                    placeholder={isGuest ? '+33 6 12 34 56 78 (facultatif)' : '0812345678'}
                     className="w-full rounded-lg border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-white/30"
                   />
                 </div>

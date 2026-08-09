@@ -1623,6 +1623,7 @@ function SettingsTab({ setError, setMsg, refresh }: { setError: (s: string | nul
       commission_tier_mid: parsed.data.commission_tier_mid,
       commission_tier_mid_threshold: parsed.data.commission_tier_mid_threshold,
       commission_tier_custom: parsed.data.commission_tier_custom,
+      guest_fee_extra_percent: parsed.data.guest_fee_extra_percent,
       boost_price_usd: parsed.data.boost_price_usd,
       verified_badge_price_usd: parsed.data.verified_badge_price_usd,
       urgent_price_usd: parsed.data.urgent_price_usd,
@@ -1663,6 +1664,11 @@ function SettingsTab({ setError, setMsg, refresh }: { setError: (s: string | nul
             <label className="mb-1 block text-xs text-white/50">Commission sur-mesure (0-1)</label>
             <input type="number" step="0.01" min="0" max="1" value={form.commission_tier_custom} onChange={(e) => num('commission_tier_custom', e.target.value)} className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none" />
             <p className="mt-1 text-xs text-white/30">{(form.commission_tier_custom * 100).toFixed(0)}%</p>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-white/50">Surtaxe vendeur invité (0-1)</label>
+            <input type="number" step="0.001" min="0" max="1" value={form.guest_fee_extra_percent} onChange={(e) => num('guest_fee_extra_percent', e.target.value)} className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none" />
+            <p className="mt-1 text-xs text-white/30">+{(form.guest_fee_extra_percent * 100).toFixed(1)}% — s'ajoute à la commission normale quand le vendeur n'a pas de campus fixe</p>
           </div>
         </div>
       </GlassCard>

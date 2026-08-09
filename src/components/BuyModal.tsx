@@ -87,7 +87,7 @@ export function BuyModal({ isOpen, listing, onClose, onSuccess }: BuyModalProps)
   };
 
   const rate = settings?.usd_to_fc_rate ?? 2800;
-  const commission = computeCommission(listing.price_usd, listing.type === 'custom', settings);
+  const commission = computeCommission(listing.price_usd, listing.type === 'custom', settings, !listing.seller?.campus_id);
   const isCustom = listing.type === 'custom';
 
   const addRefImage = () => {
@@ -249,9 +249,14 @@ export function BuyModal({ isOpen, listing, onClose, onSuccess }: BuyModalProps)
                   <span>Prix</span><span>{formatUSD(listing.price_usd)}</span>
                 </div>
                 <div className="flex justify-between text-white/50">
-                  <span>Commission plateforme ({(commission.rate * 100).toFixed(0)}%)</span>
+                  <span>Commission plateforme ({(commission.rate * 100).toFixed(1)}%)</span>
                   <span>{formatUSD(commission.commission)}</span>
                 </div>
+                {!listing.seller?.campus_id && (
+                  <p className="text-[11px] text-white/30">
+                    Inclut la surtaxe vendeur invité (+{(settings?.guest_fee_extra_percent ?? 0) * 100}%)
+                  </p>
+                )}
                 <div className="flex justify-between font-semibold text-white">
                   <span>Total à payer</span><span>{formatUSD(listing.price_usd)}</span>
                 </div>

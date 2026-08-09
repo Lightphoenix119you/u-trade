@@ -284,6 +284,9 @@ export interface AppSettings {
   commission_tier_mid: number;
   commission_tier_mid_threshold: number;
   commission_tier_custom: number;
+  // Surtaxe additionnelle sur la commission quand le vendeur est un invité
+  // (campus_id null) — s'ajoute au palier déjà calculé, ne le remplace pas.
+  guest_fee_extra_percent: number;
   boost_price_usd: number;
   verified_badge_price_usd: number;
   urgent_price_usd: number;

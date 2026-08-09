@@ -1,15 +1,43 @@
 import { z } from 'zod';
 
-// Phone: Congolese format (081/082/084/085/089/099/097...) — 10 digits, or +243 prefix
-const phoneRegex = /^(\+243|0)(\s?\d){8,9}$/;
+// Accepte un préfixe '+' optionnel, puis 7 à 15 chiffres — espaces et
+// tirets tolérés entre les chiffres (retirés avant le test). Ouvre
+// l'inscription à l'international (décision business délibérée), remplace
+// l'ancien format strictement congolais (+243/0 + 8-9 chiffres).
+export function validatePhone(phone: string): boolean {
+  const cleaned = phone.trim().replace(/[\s-]/g, '');
+  return /^\+?\d{7,15}$/.test(cleaned);
+}
 
-export const signUpSchema = z.object({
-  email: z.string().email('Email invalide'),
-  password: z.string().min(6, 'Mot de passe: 6 caractères minimum'),
-  full_name: z.string().min(2, 'Nom requis'),
-  phone: z.string().regex(phoneRegex, 'Numéro congolais requis (ex: 0812345678)'),
-  campus_id: z.string().uuid('Campus requis'),
-});
+export const signUpSchema = z
+  .object({
+    email: z.string().email('Email invalide'),
+    password: z.string().min(6, 'Mot de passe: 6 caractères minimum'),
+    full_name: z.string().min(2, 'Nom requis'),
+    phone: z.string(),
+    campus_id: z.string().uuid('Campus requis').nullable(),
+  })
+  .superRefine((data, ctx) => {
+    // Invité (campus_id null) : le téléphone devient optionnel — s'il est
+    // quand même rempli, il doit rester valide. Étudiant avec un campus :
+    // toujours obligatoire, comportement inchangé.
+    const isGuestSignup = data.campus_id === null;
+    const trimmedPhone = data.phone.trim();
+    if (!isGuestSignup && !validatePhone(trimmedPhone)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['phone'],
+        message: 'Numéro de téléphone invalide (7 à 15 chiffres, + optionnel)',
+      });
+    }
+    if (isGuestSignup && trimmedPhone && !validatePhone(trimmedPhone)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['phone'],
+        message: 'Numéro de téléphone invalide',
+      });
+    }
+  });
 
 export const signInSchema = z.object({
   email: z.string().email('Email invalide'),
@@ -18,7 +46,7 @@ export const signInSchema = z.object({
 
 export const profileUpdateSchema = z.object({
   full_name: z.string().min(2, 'Nom requis').max(60).optional(),
-  phone: z.string().regex(phoneRegex, 'Numéro congolais requis').optional().or(z.literal('')),
+  phone: z.string().refine((v) => !v || validatePhone(v), 'Numéro de téléphone invalide').optional().or(z.literal('')),
   bio: z.string().max(280).optional(),
   avatar_url: z.string().url().optional().or(z.literal('')),
   campus_id: z.string().uuid().optional().nullable(),
@@ -103,6 +131,7 @@ export const settingsSchema = z.object({
   commission_tier_mid: z.number().min(0).max(1),
   commission_tier_mid_threshold: z.number().min(0),
   commission_tier_custom: z.number().min(0).max(1),
+  guest_fee_extra_percent: z.number().min(0).max(1),
   boost_price_usd: z.number().min(0),
   verified_badge_price_usd: z.number().min(0),
   urgent_price_usd: z.number().min(0),

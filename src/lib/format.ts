@@ -44,6 +44,7 @@ export function computeCommission(
   priceUSD: number,
   isCustom: boolean,
   settings: AppSettings | null,
+  isGuest = false,
 ): { rate: number; commission: number; payout: number } {
   const s = settings;
   if (!s) return { rate: 0, commission: 0, payout: priceUSD };
@@ -53,6 +54,12 @@ export function computeCommission(
     rate = s.commission_tier_custom;
   } else if (priceUSD >= s.commission_tier_mid_threshold) {
     rate = s.commission_tier_mid;
+  }
+  // Surtaxe vendeur invité : s'ajoute au palier déjà déterminé ci-dessus,
+  // ne le remplace pas — un invité paie toujours au moins le même taux
+  // qu'un étudiant du même palier de prix, plus la surtaxe.
+  if (isGuest) {
+    rate += s.guest_fee_extra_percent;
   }
   const commission = Math.round(priceUSD * rate * 100) / 100;
   const payout = Math.round((priceUSD - commission) * 100) / 100;

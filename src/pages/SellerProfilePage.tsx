@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { GlassCard } from '@/components/GlassCard';
 import { ListingCard } from '@/components/ListingCard';
 import { timeAgo } from '@/lib/format';
-import type { Profile, ListingWithRelations } from '@/lib/types';
+import type { Profile, ListingWithRelations, ListingReview } from '@/lib/types';
 
 interface SellerProfilePageProps {
   sellerId: string;
@@ -16,6 +16,7 @@ export function SellerProfilePage({ sellerId, navigate }: SellerProfilePageProps
   const { user } = useAuth();
   const [seller, setSeller] = useState<Profile | null>(null);
   const [listings, setListings] = useState<ListingWithRelations[]>([]);
+  const [reviews, setReviews] = useState<(ListingReview & { reviewer?: Profile })[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -38,6 +39,16 @@ export function SellerProfilePage({ sellerId, navigate }: SellerProfilePageProps
       .order('created_at', { ascending: false });
 
     setListings((listingsData as ListingWithRelations[]) || []);
+
+    // Avis reçus par ce vendeur — rattachés à seller_id, indépendamment de
+    // quelle annonce précise ils concernent.
+    const { data: reviewsData } = await supabase
+      .from('listing_reviews')
+      .select('*, reviewer:profiles!listing_reviews_reviewer_id_fkey(*)')
+      .eq('seller_id', sellerId)
+      .order('created_at', { ascending: false });
+
+    setReviews((reviewsData as (ListingReview & { reviewer?: Profile })[]) || []);
     setLoading(false);
   }, [sellerId]);
 
@@ -138,6 +149,35 @@ export function SellerProfilePage({ sellerId, navigate }: SellerProfilePageProps
                 onClick={() => navigate(`/listing/${listing.id}`)}
                 onStatusChange={load}
               />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6">
+        <h2 className="mb-3 text-lg font-bold">Avis sur le vendeur</h2>
+        {reviews.length === 0 ? (
+          <p className="text-sm text-white/40">Aucun avis pour le moment</p>
+        ) : (
+          <div className="space-y-3">
+            {reviews.map((review) => (
+              <GlassCard key={review.id} className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-xs font-bold">
+                      {review.reviewer?.full_name?.charAt(0)?.toUpperCase() || 'A'}
+                    </div>
+                    <span className="text-sm font-medium">{review.reviewer?.full_name || 'Anonyme'}</span>
+                  </div>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <Star key={n} className={`h-3.5 w-3.5 ${n <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-white/15'}`} />
+                    ))}
+                  </div>
+                </div>
+                {review.comment && <p className="mt-2 text-sm text-white/60">{review.comment}</p>}
+                <p className="mt-1.5 text-[11px] text-white/30">{timeAgo(review.created_at)}</p>
+              </GlassCard>
             ))}
           </div>
         )}

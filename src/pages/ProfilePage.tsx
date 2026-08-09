@@ -14,7 +14,7 @@ import { ImageUploader } from '@/components/ImageUploader';
 import { getCampusIcon } from '@/components/CampusIcons';
 import { profileUpdateSchema } from '@/lib/validation';
 import { timeAgo } from '@/lib/format';
-import type { Listing, Order } from '@/lib/types';
+import type { Listing, Order, ListingReview, Profile } from '@/lib/types';
 import { CATEGORIES } from '@/lib/types';
 
 interface ProfilePageProps {
@@ -26,10 +26,11 @@ export function ProfilePage({ navigate }: ProfilePageProps) {
   const { openCreateListingModal } = useCreateListingModal();
   const { campuses } = useCampus();
   const [editing, setEditing] = useState(false);
-  const [tab, setTab] = useState<'listings' | 'purchases' | 'sales'>('listings');
+  const [tab, setTab] = useState<'listings' | 'purchases' | 'sales' | 'reviews'>('listings');
   const [listings, setListings] = useState<Listing[]>([]);
   const [purchases, setPurchases] = useState<Order[]>([]);
   const [sales, setSales] = useState<Order[]>([]);
+  const [reviews, setReviews] = useState<(ListingReview & { reviewer?: Profile })[]>([]);
   const [form, setForm] = useState({ full_name: '', phone: '', bio: '', campus_id: '', preferred_category: '', primary_currency: 'USD' as 'USD' | 'FC' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +130,14 @@ export function ProfilePage({ navigate }: ProfilePageProps) {
       .eq('seller_id', user.id)
       .order('created_at', { ascending: false });
     setSales((mySales as unknown as Order[]) || []);
+
+    // Avis reçus en tant que vendeur.
+    const { data: myReviews } = await supabase
+      .from('listing_reviews')
+      .select('*, reviewer:profiles!listing_reviews_reviewer_id_fkey(*)')
+      .eq('seller_id', user.id)
+      .order('created_at', { ascending: false });
+    setReviews((myReviews as (ListingReview & { reviewer?: Profile })[]) || []);
   }, [user]);
 
   useEffect(() => {
@@ -392,6 +401,12 @@ export function ProfilePage({ navigate }: ProfilePageProps) {
         >
           <TrendingUp className="h-4 w-4" /> Ventes
         </button>
+        <button
+          onClick={() => setTab('reviews')}
+          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${tab === 'reviews' ? 'bg-white/10 text-white' : 'text-white/50'}`}
+        >
+          <Star className="h-4 w-4" /> Avis
+        </button>
       </div>
 
       {/* Content */}
@@ -408,6 +423,37 @@ export function ProfilePage({ navigate }: ProfilePageProps) {
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             {listings.map((l) => (
               <ListingCard key={l.id} listing={l as unknown as import('@/lib/types').ListingWithRelations} onClick={() => navigate(`/listing/${l.id}`)} />
+            ))}
+          </div>
+        )
+      )}
+
+      {tab === 'reviews' && (
+        reviews.length === 0 ? (
+          <GlassCard className="p-8 text-center">
+            <Star className="mx-auto mb-3 h-10 w-10 text-white/15" />
+            <p className="text-sm text-white/40">Aucun avis reçu pour le moment</p>
+          </GlassCard>
+        ) : (
+          <div className="space-y-3">
+            {reviews.map((review) => (
+              <GlassCard key={review.id} className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-xs font-bold">
+                      {review.reviewer?.full_name?.charAt(0)?.toUpperCase() || 'A'}
+                    </div>
+                    <span className="text-sm font-medium">{review.reviewer?.full_name || 'Anonyme'}</span>
+                  </div>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <Star key={n} className={`h-3.5 w-3.5 ${n <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-white/15'}`} />
+                    ))}
+                  </div>
+                </div>
+                {review.comment && <p className="mt-2 text-sm text-white/60">{review.comment}</p>}
+                <p className="mt-1.5 text-[11px] text-white/30">{timeAgo(review.created_at)}</p>
+              </GlassCard>
             ))}
           </div>
         )

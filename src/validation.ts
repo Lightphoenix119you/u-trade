@@ -1,13 +1,19 @@
 import { z } from 'zod';
 
-// Phone: Congolese format (081/082/084/085/089/099/097...) — 10 digits, or +243 prefix
-const phoneRegex = /^(\+243|0)(\s?\d){8,9}$/;
+// Accepte un préfixe '+' optionnel, puis 7 à 15 chiffres — espaces et
+// tirets tolérés entre les chiffres (retirés avant le test). Remplace
+// l'ancien format strictement congolais (+243/0 + 8-9 chiffres) : décision
+// délibérée d'ouvrir l'inscription à l'international.
+export function validatePhone(phone: string): boolean {
+  const cleaned = phone.trim().replace(/[\s-]/g, '');
+  return /^\+?\d{7,15}$/.test(cleaned);
+}
 
 export const signUpSchema = z.object({
   email: z.string().email('Email invalide'),
   password: z.string().min(6, 'Mot de passe: 6 caractères minimum'),
   full_name: z.string().min(2, 'Nom requis'),
-  phone: z.string().regex(phoneRegex, 'Numéro congolais requis (ex: 0812345678)'),
+  phone: z.string().refine(validatePhone, 'Numéro de téléphone invalide (7 à 15 chiffres, + optionnel)'),
   campus_id: z.string().uuid('Campus requis').nullable(),
 });
 
@@ -18,7 +24,7 @@ export const signInSchema = z.object({
 
 export const profileUpdateSchema = z.object({
   full_name: z.string().min(2, 'Nom requis').max(60).optional(),
-  phone: z.string().regex(phoneRegex, 'Numéro congolais requis').optional().or(z.literal('')),
+  phone: z.string().refine(validatePhone, 'Numéro de téléphone invalide').optional().or(z.literal('')),
   bio: z.string().max(280).optional(),
   avatar_url: z.string().url().optional().or(z.literal('')),
   campus_id: z.string().uuid().optional().nullable(),

@@ -2,9 +2,10 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Edit2, Save, X, Package, ShoppingBag,
   Star, BadgeCheck, Award, TrendingUp, Store, KeyRound, Lock, Eye, EyeOff,
-  ArrowRight, ShieldCheck,
+  ArrowRight, ShieldCheck, PlayCircle,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useOnboarding } from '@/context/OnboardingContext';
 import { useAuth } from '@/context/AuthContext';
 import { useCreateListingModal } from '@/context/CreateListingModalContext';
 import { useCampus } from '@/context/CampusContext';
@@ -23,6 +24,7 @@ interface ProfilePageProps {
 
 export function ProfilePage({ navigate }: ProfilePageProps) {
   const { user, profile, refreshProfile } = useAuth();
+  const { startTour } = useOnboarding();
   const { openCreateListingModal } = useCreateListingModal();
   const { campuses } = useCampus();
   const [editing, setEditing] = useState(false);
@@ -596,6 +598,13 @@ export function ProfilePage({ navigate }: ProfilePageProps) {
           )}
         </div>
       )}
+
+      <button
+        onClick={startTour}
+        className="mx-auto mt-8 flex items-center gap-2 rounded-lg px-4 py-2 text-xs text-white/30 transition hover:text-white/60"
+      >
+        <PlayCircle className="h-3.5 w-3.5" /> Revoir le tutoriel
+      </button>
     </div>
   );
 }

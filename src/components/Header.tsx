@@ -25,6 +25,15 @@ export function Header({ route, navigate }: HeaderProps) {
     { label: 'À propos', icon: Info, path: '/about', match: (r: string) => r.startsWith('/about') },
   ];
 
+  // Marché/Boutiques existent en double (nav desktop + nav mobile) : le
+  // même data-tour sur les deux, OnboardingTour.tsx choisit celui qui est
+  // réellement visible selon le viewport.
+  const tourTargetFor = (path: string): string | undefined => {
+    if (path === '/market') return 'nav-market';
+    if (path === '/shops') return 'nav-boutiques';
+    return undefined;
+  };
+
   // Helper pour obtenir l'URL complète de l'avatar
   const getAvatarUrl = (path: string | null | undefined) => {
     if (!path) return null;
@@ -64,6 +73,7 @@ export function Header({ route, navigate }: HeaderProps) {
             return (
               <button
                 key={item.path}
+                data-tour={tourTargetFor(item.path)}
                 onClick={() => navigate(item.path)}
                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
                   active ? 'bg-white/10 text-white' : 'text-white/60 hover:bg-white/5 hover:text-white'
@@ -77,11 +87,14 @@ export function Header({ route, navigate }: HeaderProps) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <CampusSelector />
+          <div data-tour="campus-selector">
+            <CampusSelector />
+          </div>
 
           {user ? (
             <>
               <button
+                data-tour="create-button"
                 onClick={openCreateListingModal}
                 className="campus-gradient flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90"
               >
@@ -105,6 +118,7 @@ export function Header({ route, navigate }: HeaderProps) {
 
               {/* Bouton Profil */}
               <button
+                data-tour="nav-profile"
                 onClick={() => navigate('/profile')}
                 className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium transition ${
                   route.startsWith('/profile') ? 'bg-white/10 text-white' : 'text-white/60 hover:bg-white/5 hover:text-white'
@@ -163,6 +177,7 @@ export function Header({ route, navigate }: HeaderProps) {
           return (
             <button
               key={item.path}
+              data-tour={tourTargetFor(item.path)}
               onClick={() => navigate(item.path)}
               className={`flex flex-shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                 active ? 'bg-white/10 text-white' : 'text-white/50'

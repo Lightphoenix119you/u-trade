@@ -3,6 +3,8 @@ import { AlertCircle, X } from 'lucide-react';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { CampusProvider, useCampus } from '@/context/CampusContext';
 import { CreateListingModalProvider } from '@/context/CreateListingModalContext';
+import { OnboardingProvider } from '@/context/OnboardingContext';
+import { OnboardingTour } from '@/components/OnboardingTour';
 import { MeshBackground } from '@/components/MeshBackground';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -114,6 +116,7 @@ function AppContent() {
 
   return (
     <CreateListingModalProvider navigate={navigate}>
+      <OnboardingProvider>
       <MeshBackground campus={selectedCampus} />
       {flash && (
         <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 animate-fade-up px-4">
@@ -147,6 +150,8 @@ function AppContent() {
         <main>{renderPage()}</main>
         {!isAuthPage && <Footer navigate={navigate} />}
       </div>
+      {!isAuthPage && <OnboardingTour />}
+      </OnboardingProvider>
     </CreateListingModalProvider>
   );
 }

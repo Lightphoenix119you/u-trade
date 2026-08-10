@@ -116,6 +116,9 @@ export interface Listing {
   is_urgent: boolean;
   is_boosted: boolean;
   boost_until: string | null;
+  daily_budget_usd: number | null;
+  boost_duration_days: number | null;
+  total_boost_budget_usd: number | null;
   status: ListingStatus;
   view_count: number;
   created_at: string;

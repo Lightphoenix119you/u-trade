@@ -40,6 +40,18 @@ export function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+// Estimation de portée pour le sponsoring dynamique — formule illustrative
+// (aucune donnée de trafic réelle ne l'alimente, à ajuster une fois de
+// vraies statistiques de vues disponibles). $1 de budget quotidien ≈ 300
+// vues/jour sur le campus concerné.
+export const VIEWS_PER_DOLLAR_PER_DAY = 300;
+
+export function estimateBoostReach(dailyBudgetUSD: number, durationDays: number): { dailyViews: number; totalViews: number } {
+  const dailyViews = Math.round(Math.max(0, dailyBudgetUSD) * VIEWS_PER_DOLLAR_PER_DAY);
+  const totalViews = dailyViews * Math.max(0, durationDays);
+  return { dailyViews, totalViews };
+}
+
 export function computeCommission(
   priceUSD: number,
   isCustom: boolean,

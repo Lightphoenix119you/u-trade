@@ -5,6 +5,20 @@ import { getCampusIcon } from '@/components/CampusIcons';
 import { ALL_CAMPUSES_ID } from '@/lib/format';
 import type { Campus } from '@/lib/types';
 
+// Retire les accents avant comparaison ("École" doit matcher "ecole") en
+// plus du .toLowerCase() déjà en place pour l'insensibilité à la casse.
+function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+// Nombre de campus affichés par défaut quand aucune recherche n'est saisie
+// — au-delà, l'utilisateur doit chercher plutôt que de faire défiler une
+// liste brute qui deviendra ingérable à mesure que des campus s'ajoutent.
+const DEFAULT_DISPLAY_LIMIT = 12;
+
 interface CampusSelectorProps {
   /**
    * false (défaut) : bouton compact + popover, pour le header.
@@ -49,11 +63,17 @@ export function CampusSelector({ inline = false, value, onChange, hideAllOption 
 
   const isAll = !hideAllOption && (activeId === ALL_CAMPUSES_ID || !activeCampus);
 
+  const hasSearch = search.trim().length > 0;
   const filtered = campuses.filter((c: Campus) => {
-    const q = search.trim().toLowerCase();
-    if (!q) return true;
-    return c.name.toLowerCase().includes(q) || c.city.toLowerCase().includes(q);
+    if (!hasSearch) return true;
+    const q = normalize(search.trim());
+    return normalize(c.name).includes(q) || normalize(c.city).includes(q);
   });
+  // Sans recherche active : on tronque à DEFAULT_DISPLAY_LIMIT. Dès qu'un
+  // terme est tapé, on affiche TOUS les résultats correspondants, même
+  // s'ils dépassent cette limite.
+  const visible = hasSearch ? filtered : filtered.slice(0, DEFAULT_DISPLAY_LIMIT);
+  const hiddenCount = hasSearch ? 0 : Math.max(0, filtered.length - visible.length);
 
   const list = (
     <>
@@ -70,7 +90,7 @@ export function CampusSelector({ inline = false, value, onChange, hideAllOption 
         </div>
       )}
 
-      <div className={inline ? 'max-h-56 overflow-y-auto rounded-xl border border-white/10' : ''}>
+      <div className={inline ? 'max-h-60 overflow-y-auto rounded-xl border border-white/10' : ''}>
         {!hideAllOption && (
           <>
             <button
@@ -86,10 +106,15 @@ export function CampusSelector({ inline = false, value, onChange, hideAllOption 
           </>
         )}
 
-        {filtered.length === 0 ? (
-          <p className="px-3 py-4 text-center text-sm text-white/30">Aucun campus ne correspond</p>
+        {visible.length === 0 ? (
+          <div className="px-3 py-4 text-center">
+            <p className="text-sm text-white/40">
+              {hasSearch ? <>Aucun campus ne correspond à « {search.trim()} »</> : 'Aucun campus disponible'}
+            </p>
+            <p className="mt-1 text-xs text-white/25">Vois l'option ci-dessous pour continuer quand même</p>
+          </div>
         ) : (
-          filtered.map((campus: Campus) => {
+          visible.map((campus: Campus) => {
             const Icon = getCampusIcon(campus.icon_name);
             const active = campus.id === activeId;
             return (
@@ -115,6 +140,11 @@ export function CampusSelector({ inline = false, value, onChange, hideAllOption 
             );
           })
         )}
+        {hiddenCount > 0 && (
+          <p className="px-3 py-2 text-center text-xs text-white/25">
+            +{hiddenCount} autre{hiddenCount > 1 ? 's' : ''} — tape pour chercher
+          </p>
+        )}
       </div>
 
       <div className="my-1 h-px bg-white/10" />
@@ -123,10 +153,12 @@ export function CampusSelector({ inline = false, value, onChange, hideAllOption 
         target={isControlled ? '_blank' : undefined}
         rel={isControlled ? 'noreferrer' : undefined}
         onClick={() => { if (!inline && !isControlled) setOpen(false); }}
-        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-400 transition hover:bg-white/10 hover:text-white"
+        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition hover:bg-white/10 hover:text-white ${
+          visible.length === 0 ? 'text-white font-medium' : 'text-gray-400'
+        }`}
       >
         <Plus className="h-5 w-5 flex-shrink-0" />
-        <span className="flex-1 text-left">Votre campus n'est pas répertorié ?</span>
+        <span className="flex-1 text-left">Votre campus n'est pas répertorié ? Suggérer un campus</span>
       </a>
     </>
   );

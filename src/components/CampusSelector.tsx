@@ -77,18 +77,16 @@ export function CampusSelector({ inline = false, value, onChange, hideAllOption 
 
   const list = (
     <>
-      {inline && (
-        <div className="relative mb-2">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher un campus par nom ou ville..."
-            className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-3 text-sm outline-none focus:border-white/30"
-          />
-        </div>
-      )}
+      <div className="relative mb-2">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Rechercher un campus par nom ou ville..."
+          className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-3 text-sm outline-none focus:border-white/30"
+        />
+      </div>
 
       <div className={inline ? 'max-h-60 overflow-y-auto rounded-xl border border-white/10' : ''}>
         {!hideAllOption && (

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Edit2, Save, X, Package, ShoppingBag,
   Star, BadgeCheck, Award, TrendingUp, Store, KeyRound, Lock, Eye, EyeOff,
@@ -31,6 +31,16 @@ export function ProfilePage({ navigate }: ProfilePageProps) {
   const [purchases, setPurchases] = useState<Order[]>([]);
   const [sales, setSales] = useState<Order[]>([]);
   const [reviews, setReviews] = useState<(ListingReview & { reviewer?: Profile })[]>([]);
+
+  // Calculé directement depuis les avis déjà récupérés pour l'onglet "Avis",
+  // plutôt que depuis profile.reputation_score/total_reviews (mis en cache
+  // par AuthContext, potentiellement périmé). Aucune requête Supabase
+  // supplémentaire : reviews est déjà chargé par loadData() ci-dessous.
+  const liveReviewsCount = reviews.length;
+  const liveRating = useMemo(() => {
+    if (reviews.length === 0) return 0;
+    return Math.round((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) * 10) / 10;
+  }, [reviews]);
   const [form, setForm] = useState({ full_name: '', phone: '', bio: '', campus_id: '', preferred_category: '', primary_currency: 'USD' as 'USD' | 'FC' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -264,10 +274,10 @@ export function ProfilePage({ navigate }: ProfilePageProps) {
             <div className="mt-2 flex items-center gap-4 text-xs text-white/40">
               <span className="flex items-center gap-1">
                 <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                {profile.reputation_score?.toFixed(1) || '0.0'}
+                {liveRating.toFixed(1)}
               </span>
               <span>{profile.total_sales} vente{profile.total_sales > 1 ? 's' : ''}</span>
-              <span>{profile.total_reviews} avis</span>
+              <span>{liveReviewsCount} avis</span>
               <span>Inscrit {timeAgo(profile.created_at)}</span>
             </div>
           </div>

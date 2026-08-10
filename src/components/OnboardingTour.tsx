@@ -106,14 +106,6 @@ export function OnboardingTour() {
     ? { top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }
     : null;
 
-  // Position de la carte : sous la cible si elle a de la place en dessous,
-  // sinon au-dessus — jamais hors écran sur un petit téléphone.
-  const cardTop = spotlight
-    ? (spotlight.top + spotlight.height + 160 < window.innerHeight
-        ? spotlight.top + spotlight.height + 12
-        : Math.max(12, spotlight.top - 180))
-    : undefined;
-
   return (
     <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true">
       {/* Fond sombre — 4 bandes autour de la cible plutôt qu'un seul calque,
@@ -133,11 +125,11 @@ export function OnboardingTour() {
         <div className="absolute inset-0 bg-black/80" />
       )}
 
-      {/* Carte d'étape */}
-      <div
-        className="absolute left-1/2 w-[90vw] max-w-sm -translate-x-1/2 animate-fade-up"
-        style={cardTop !== undefined ? { top: cardTop } : { top: '50%', transform: 'translate(-50%, -50%)' }}
-      >
+      {/* Carte d'étape — position fixe en bas de l'écran, indépendante de la
+          cible : positionner près de l'élément surligné cassait sur mobile
+          (débordement horizontal, texte coupé). Le surlignage reste sur la
+          cible, seule l'explication est toujours au même endroit fixe. */}
+      <div className="fixed inset-x-4 bottom-6 z-[210] mx-auto max-w-sm animate-fade-up sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2">
         <div className="glass-strong rounded-2xl border border-white/15 p-5 shadow-2xl">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>

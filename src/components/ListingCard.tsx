@@ -126,7 +126,7 @@ export function ListingCard({ listing, onClick, onStatusChange }: ListingCardPro
             {listing.is_boosted && (
               <span className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur"
                 style={{ backgroundColor: hexToRgba(campus?.primary_color || '#3b82f6', 0.9) }}>
-                <Tag className="h-2.5 w-2.5" /> BOOST
+                <Tag className="h-2.5 w-2.5" /> SPONSORISÉ
               </span>
             )}
             {listing.type === 'custom' && (

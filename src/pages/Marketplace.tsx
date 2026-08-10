@@ -51,6 +51,7 @@ export function Marketplace({ navigate }: MarketplaceProps) {
       `)
       .eq('status', 'active')
       .order('is_boosted', { ascending: false })
+      .order('daily_budget_usd', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
 
     if (selectedCampusId !== ALL_CAMPUSES_ID) {

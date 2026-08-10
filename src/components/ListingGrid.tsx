@@ -40,6 +40,7 @@ export function ListingGrid({
       .select(`*, seller:profiles!listings_seller_id_fkey(*), shop:shops(*), campus:campuses(*), hub:campus_hubs(*)`)
       .eq('status', 'active')
       .order('is_boosted', { ascending: false })
+      .order('daily_budget_usd', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(limit);
 

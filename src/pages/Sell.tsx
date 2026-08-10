@@ -9,7 +9,7 @@ import { MultiImageUploader } from '@/components/MultiImageUploader';
 import { listingSchema } from '@/lib/validation';
 import { detectBlockedContent } from '@/lib/antiCircumvention';
 import { CATEGORIES, CONDITIONS, type CampusHub } from '@/lib/types';
-import { formatUSD, formatFC } from '@/lib/format';
+import { formatUSD, formatFC, estimateBoostReach } from '@/lib/format';
 import type { ListingType } from '@/lib/types';
 
 interface SellProps {
@@ -31,6 +31,8 @@ export function Sell({ navigate }: SellProps) {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [isUrgent, setIsUrgent] = useState(false);
   const [isBoosted, setIsBoosted] = useState(false);
+  const [boostDurationDays, setBoostDurationDays] = useState(3);
+  const [dailyBudget, setDailyBudget] = useState(1);
   const [hubs, setHubs] = useState<CampusHub[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,8 +75,10 @@ export function Sell({ navigate }: SellProps) {
 
   const rate = settings?.usd_to_fc_rate ?? 2800;
   const priceNum = parseFloat(price) || 0;
-  const boostPrice = settings?.boost_price_usd ?? 2;
+  const MIN_DAILY_BUDGET = 0.5;
   const urgentPrice = settings?.urgent_price_usd ?? 1;
+  const totalBoostBudget = Math.round(dailyBudget * boostDurationDays * 100) / 100;
+  const reach = estimateBoostReach(dailyBudget, boostDurationDays);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,7 +141,10 @@ export function Sell({ navigate }: SellProps) {
         artist_instructions: parsed.data.artist_instructions || null,
         is_urgent: parsed.data.is_urgent,
         is_boosted: isBoosted,
-        boost_until: isBoosted ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() : null,
+        boost_until: isBoosted ? new Date(Date.now() + boostDurationDays * 24 * 60 * 60 * 1000).toISOString() : null,
+        daily_budget_usd: isBoosted ? dailyBudget : null,
+        boost_duration_days: isBoosted ? boostDurationDays : null,
+        total_boost_budget_usd: isBoosted ? totalBoostBudget : null,
         status: 'active',
       })
       .select()
@@ -150,13 +157,15 @@ export function Sell({ navigate }: SellProps) {
       return;
     }
 
-    // Record paid options as transactions
+    // Sponsoring = revenu réel, prélevé à la publication — montant
+    // désormais variable (budget quotidien × durée), plus le tarif fixe
+    // précédent.
     if (isBoosted) {
       await supabase.from('transactions').insert({
         user_id: user.id,
         type: 'boost',
-        amount_usd: boostPrice,
-        description: 'Boost d\'annonce 3 jours',
+        amount_usd: totalBoostBudget,
+        description: `Sponsoring ${boostDurationDays}j — ${formatUSD(dailyBudget)}/jour`,
         created_by: user.id,
       });
     }
@@ -377,39 +386,108 @@ export function Sell({ navigate }: SellProps) {
           />
         </GlassCard>
 
-        {/* Paid options */}
+        {/* Sponsoring dynamique */}
         <GlassCard className="p-5">
-          <h3 className="mb-3 text-sm font-semibold">Options payantes</h3>
-          <div className="space-y-2">
-            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3 transition hover:border-white/20">
-              <input
-                type="checkbox"
-                checked={isBoosted}
-                onChange={(e) => setIsBoosted(e.target.checked)}
-                className="h-4 w-4 rounded accent-blue-500"
-              />
-              <Tag className="h-4 w-4 text-amber-400" />
-              <div className="flex-1">
-                <div className="text-sm font-medium">Boost d'annonce (3 jours)</div>
-                <div className="text-xs text-white/40">Mise en avant dans les résultats</div>
+          <h3 className="mb-3 text-sm font-semibold">Sponsoriser mon annonce</h3>
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3 transition hover:border-white/20">
+            <input
+              type="checkbox"
+              checked={isBoosted}
+              onChange={(e) => setIsBoosted(e.target.checked)}
+              className="h-4 w-4 rounded accent-blue-500"
+            />
+            <Tag className="h-4 w-4 text-amber-400" />
+            <div className="flex-1">
+              <div className="text-sm font-medium">Activer le sponsoring</div>
+              <div className="text-xs text-white/40">Budget et durée personnalisés — mise en avant proportionnelle</div>
+            </div>
+          </label>
+
+          {isBoosted && (
+            <div className="mt-3 space-y-4 rounded-xl border border-white/10 bg-white/5 p-4">
+              <div>
+                <div className="mb-1.5 flex items-center justify-between text-sm">
+                  <span className="text-white/70">Durée de la campagne</span>
+                  <span className="font-semibold campus-text">{boostDurationDays} jour{boostDurationDays > 1 ? 's' : ''}</span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={30}
+                  step={1}
+                  value={boostDurationDays}
+                  onChange={(e) => setBoostDurationDays(Number(e.target.value))}
+                  className="w-full accent-blue-500"
+                />
+                <div className="flex justify-between text-[10px] text-white/30"><span>1 jour</span><span>30 jours</span></div>
               </div>
-              <span className="text-sm font-semibold campus-text">{formatUSD(boostPrice)}</span>
-            </label>
-            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3 transition hover:border-white/20">
-              <input
-                type="checkbox"
-                checked={isUrgent}
-                onChange={(e) => setIsUrgent(e.target.checked)}
-                className="h-4 w-4 rounded accent-red-500"
-              />
-              <Zap className="h-4 w-4 text-red-400" />
-              <div className="flex-1">
-                <div className="text-sm font-medium">Vente Urgente</div>
-                <div className="text-xs text-white/40">Badge URGENT visible sur la carte</div>
+
+              <div>
+                <div className="mb-1.5 flex items-center justify-between text-sm">
+                  <span className="text-white/70">Budget quotidien</span>
+                  <span className="font-semibold campus-text">{formatUSD(dailyBudget)}/jour</span>
+                </div>
+                <input
+                  type="range"
+                  min={MIN_DAILY_BUDGET}
+                  max={10}
+                  step={0.5}
+                  value={dailyBudget}
+                  onChange={(e) => setDailyBudget(Number(e.target.value))}
+                  className="w-full accent-blue-500"
+                />
+                <div className="mt-1.5 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={MIN_DAILY_BUDGET}
+                    step={0.5}
+                    value={dailyBudget}
+                    onChange={(e) => setDailyBudget(Math.max(MIN_DAILY_BUDGET, Number(e.target.value) || MIN_DAILY_BUDGET))}
+                    className="w-24 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-sm outline-none focus:border-white/30"
+                  />
+                  <span className="text-[11px] text-white/30">minimum {formatUSD(MIN_DAILY_BUDGET)}/jour — saisie libre si besoin de dépasser {formatUSD(10)}</span>
+                </div>
               </div>
-              <span className="text-sm font-semibold campus-text">{formatUSD(urgentPrice)}</span>
-            </label>
-          </div>
+
+              <div className="rounded-lg bg-white/5 p-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-white/50">Budget total</span>
+                  <span className="text-base font-bold text-white">
+                    {formatUSD(totalBoostBudget)} <span className="text-xs font-normal text-white/40">· {formatFC(totalBoostBudget, settings?.usd_to_fc_rate ?? 2800)}</span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3">
+                <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-blue-300">
+                  <Sparkles className="h-3.5 w-3.5" /> Portée estimée
+                </div>
+                <p className="text-sm text-white/70">
+                  ~{reach.dailyViews.toLocaleString('fr-FR')} vues/jour
+                  <span className="text-white/40"> (~{reach.totalViews.toLocaleString('fr-FR')} vues au total sur le campus)</span>
+                </p>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                  <div className="campus-gradient h-full rounded-full transition-all" style={{ width: `${Math.min(100, (dailyBudget / 10) * 100)}%` }} />
+                </div>
+                <p className="mt-1.5 text-[10px] text-white/25">Estimation indicative, non garantie.</p>
+              </div>
+            </div>
+          )}
+
+          <label className="mt-2 flex cursor-pointer items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3 transition hover:border-white/20">
+            <input
+              type="checkbox"
+              checked={isUrgent}
+              onChange={(e) => setIsUrgent(e.target.checked)}
+              className="h-4 w-4 rounded accent-red-500"
+            />
+            <Zap className="h-4 w-4 text-red-400" />
+            <div className="flex-1">
+              <div className="text-sm font-medium">Vente Urgente</div>
+              <div className="text-xs text-white/40">Badge URGENT visible sur la carte</div>
+            </div>
+            <span className="text-sm font-semibold campus-text">{formatUSD(urgentPrice)}</span>
+          </label>
         </GlassCard>
 
         {type === 'custom' && (

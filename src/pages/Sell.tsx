@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Sparkles, Package, Palette, Zap, Tag, Info, Shield } from 'lucide-react';
+import { ArrowLeft, Sparkles, Package, Palette, Zap, Tag, Info, Shield, Lock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useCampus } from '@/context/CampusContext';
@@ -200,15 +200,19 @@ export function Sell({ navigate }: SellProps) {
           <span className="text-xs text-white/40">Stock immédiat</span>
         </button>
         <button
-          onClick={() => setType('custom')}
-          className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition ${
-            type === 'custom' ? 'border-white/30 bg-white/10' : 'border-white/10 bg-white/5'
-          }`}
-          style={type === 'custom' ? { borderColor: 'var(--campus-primary)' } : undefined}
+          type="button"
+          disabled
+          aria-disabled="true"
+          className="relative flex flex-col items-center gap-2 overflow-hidden rounded-xl border border-white/10 bg-white/5 p-4 pointer-events-none opacity-50 backdrop-blur-sm"
         >
           <Palette className="h-6 w-6 campus-text" />
           <span className="font-semibold text-sm">Boutique / Sur-Mesure</span>
           <span className="text-xs text-white/40">Commande créateur</span>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+            <span className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/60 px-3 py-1 text-[11px] font-semibold text-white">
+              <Lock className="h-3 w-3" /> Bientôt disponible
+            </span>
+          </div>
         </button>
       </div>
 

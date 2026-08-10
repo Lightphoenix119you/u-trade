@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { X, Loader2, AlertCircle, Palette } from 'lucide-react';
+import { X, Loader2, AlertCircle, Palette, Tag, Zap } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useCampus } from '@/context/CampusContext';
 import { MultiImageUploader } from '@/components/MultiImageUploader';
 import { CampusSelector } from '@/components/CampusSelector';
+import { formatUSD, computeCommission } from '@/lib/format';
 import { CATEGORIES, CONDITIONS, type CampusHub } from '@/lib/types';
 import type { CreateListingFormData, CreateListingModalProps } from '@/types/listing';
 
@@ -52,14 +53,19 @@ function findForbiddenWord(text: string): string | null {
 
 export function CreateListingModal({ isOpen, onClose, onSuccess }: CreateListingModalProps) {
   const { user, profile } = useAuth();
-  const { selectedCampusId } = useCampus();
+  const { selectedCampusId, settings } = useCampus();
 
   const [form, setForm] = useState<CreateListingFormData>(initialForm);
   const [images, setImages] = useState<string[]>([]);
   const [hubs, setHubs] = useState<CampusHub[]>([]);
   const [hubId, setHubId] = useState('');
+  const [isBoosted, setIsBoosted] = useState(false);
+  const [isUrgent, setIsUrgent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const boostPrice = settings?.boost_price_usd ?? 2;
+  const urgentPrice = settings?.urgent_price_usd ?? 1;
 
   const isGuestSeller = !profile?.campus_id;
   const [guestCampusId, setGuestCampusId] = useState<string | null>(null);
@@ -97,6 +103,8 @@ export function CreateListingModal({ isOpen, onClose, onSuccess }: CreateListing
       setImages([]);
       setHubId('');
       setGuestCampusId(null);
+      setIsBoosted(false);
+      setIsUrgent(false);
       setError(null);
     }
   }, [isOpen]);
@@ -151,6 +159,9 @@ export function CreateListingModal({ isOpen, onClose, onSuccess }: CreateListing
       category: form.category,
       condition: form.condition,
       image_urls: images,
+      is_urgent: isUrgent,
+      is_boosted: isBoosted,
+      boost_until: isBoosted ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() : null,
       status: 'active',
     });
     setLoading(false);
@@ -158,6 +169,29 @@ export function CreateListingModal({ isOpen, onClose, onSuccess }: CreateListing
     if (insertError) {
       setError(insertError.message);
       return;
+    }
+
+    // Options payantes = revenu réel pour la plateforme, prélevé à la
+    // publication (indépendamment d'une vente future) — sans cet
+    // enregistrement, cocher les cases n'aurait aucun effet financier,
+    // seulement visuel.
+    if (isBoosted) {
+      await supabase.from('transactions').insert({
+        user_id: user.id,
+        type: 'boost',
+        amount_usd: boostPrice,
+        description: "Boost d'annonce 3 jours",
+        created_by: user.id,
+      });
+    }
+    if (isUrgent) {
+      await supabase.from('transactions').insert({
+        user_id: user.id,
+        type: 'urgent',
+        amount_usd: urgentPrice,
+        description: 'Vente urgente',
+        created_by: user.id,
+      });
     }
 
     onSuccess();
@@ -296,6 +330,71 @@ export function CreateListingModal({ isOpen, onClose, onSuccess }: CreateListing
             </p>
           </div>
 
+          <div>
+            <h3 className="mb-2 text-sm font-semibold">Options payantes</h3>
+            <div className="space-y-2">
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3 transition hover:border-white/20">
+                <input
+                  type="checkbox"
+                  checked={isBoosted}
+                  onChange={(e) => setIsBoosted(e.target.checked)}
+                  className="h-4 w-4 rounded accent-blue-500"
+                />
+                <Tag className="h-4 w-4 text-amber-400" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Boost d'annonce (3 jours)</div>
+                  <div className="text-xs text-white/40">Mise en avant dans les résultats</div>
+                </div>
+                <span className="text-sm font-semibold campus-text">{formatUSD(boostPrice)}</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3 transition hover:border-white/20">
+                <input
+                  type="checkbox"
+                  checked={isUrgent}
+                  onChange={(e) => setIsUrgent(e.target.checked)}
+                  className="h-4 w-4 rounded accent-red-500"
+                />
+                <Zap className="h-4 w-4 text-red-400" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Vente Urgente</div>
+                  <div className="text-xs text-white/40">Badge URGENT visible sur la carte</div>
+                </div>
+                <span className="text-sm font-semibold campus-text">{formatUSD(urgentPrice)}</span>
+              </label>
+            </div>
+          </div>
+
+          {form.price > 0 && (
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/40">Résumé financier</h3>
+              {(() => {
+                const commission = computeCommission(form.price, false, settings, isGuestSeller);
+                const upfrontFees = (isBoosted ? boostPrice : 0) + (isUrgent ? urgentPrice : 0);
+                const netIfSold = commission.payout - upfrontFees;
+                return (
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between text-white/50">
+                      <span>Prix de l'article</span><span>{formatUSD(form.price)}</span>
+                    </div>
+                    {(isBoosted || isUrgent) && (
+                      <div className="flex justify-between text-white/50">
+                        <span>Options sélectionnées — payées maintenant</span><span>-{formatUSD(upfrontFees)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-white/50">
+                      <span>Commission de vente ({(commission.rate * 100).toFixed(1)}%, si vendu)</span>
+                      <span>-{formatUSD(commission.commission)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-white/10 pt-1.5 font-semibold text-white">
+                      <span>Net estimé si vendu</span>
+                      <span className="campus-gradient-text">{formatUSD(netIfSold)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
@@ -308,13 +407,14 @@ export function CreateListingModal({ isOpen, onClose, onSuccess }: CreateListing
 
         <button
           type="button"
-          onClick={() => { onClose(); window.location.hash = '/sell'; }}
-          className="mt-4 flex w-full items-center gap-2.5 rounded-lg border border-dashed border-white/15 bg-white/5 p-3 text-left transition hover:border-white/30 hover:bg-white/10"
+          disabled
+          aria-disabled="true"
+          className="mt-4 flex w-full cursor-not-allowed items-center gap-2.5 rounded-lg border border-dashed border-white/15 bg-white/5 p-3 text-left opacity-50"
         >
           <Palette className="h-4 w-4 flex-shrink-0 text-white/40" />
           <span className="text-xs text-white/50">
-            Vous proposez un service ou une commande créative sur-mesure ?{' '}
-            <span className="campus-text font-medium">Cliquez ici</span>
+            Les commandes sur-mesure arrivent bientôt.{' '}
+            <span className="font-medium">Reste connecté !</span>
           </span>
         </button>
       </div>

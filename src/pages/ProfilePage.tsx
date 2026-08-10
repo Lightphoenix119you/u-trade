@@ -154,6 +154,19 @@ export function ProfilePage({ navigate }: ProfilePageProps) {
     loadData();
   }, [profile, loadData]);
 
+  // Rafraîchit le profil depuis la base à l'arrivée sur la page — sans ça,
+  // reputation_score/total_reviews restent figés sur ce qu'ils valaient au
+  // chargement de la session (mis en cache par AuthContext), même si des
+  // avis sont arrivés depuis. SellerProfilePage.tsx n'a pas ce problème
+  // car il refait toujours une requête fraîche, jamais depuis un cache.
+  // Effet séparé à dépendances vides : refreshProfile() crée un nouvel
+  // objet profile à chaque appel, l'inclure dans l'effet ci-dessus
+  // boucherait indéfiniment.
+  useEffect(() => {
+    refreshProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (!user || !profile) {
     return (
       <div className="relative z-10 mx-auto max-w-md px-4 py-16 text-center">

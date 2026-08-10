@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Loader2, AlertCircle, Palette, Tag, Zap, Sparkles } from 'lucide-react';
+import { X, Loader2, AlertCircle, Palette, Tag, Zap, Sparkles, Eye } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useCampus } from '@/context/CampusContext';
@@ -63,6 +63,7 @@ export function CreateListingModal({ isOpen, onClose, onSuccess }: CreateListing
   const [boostDurationDays, setBoostDurationDays] = useState(3);
   const [dailyBudget, setDailyBudget] = useState(1);
   const [isUrgent, setIsUrgent] = useState(false);
+  const [showViewCount, setShowViewCount] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -111,6 +112,7 @@ export function CreateListingModal({ isOpen, onClose, onSuccess }: CreateListing
       setBoostDurationDays(3);
       setDailyBudget(1);
       setIsUrgent(false);
+      setShowViewCount(true);
       setError(null);
     }
   }, [isOpen]);
@@ -170,6 +172,7 @@ export function CreateListingModal({ isOpen, onClose, onSuccess }: CreateListing
       condition: form.condition,
       image_urls: images,
       is_urgent: isUrgent,
+      show_view_count: showViewCount,
       is_boosted: isBoosted,
       boost_until: isBoosted ? new Date(Date.now() + boostDurationDays * 24 * 60 * 60 * 1000).toISOString() : null,
       daily_budget_usd: isBoosted ? dailyBudget : null,
@@ -481,6 +484,25 @@ export function CreateListingModal({ isOpen, onClose, onSuccess }: CreateListing
               })()}
             </div>
           )}
+
+          <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 p-3">
+            <div className="flex items-center gap-2.5">
+              <Eye className="h-4 w-4 text-white/40" />
+              <div>
+                <div className="text-sm font-medium">Afficher le nombre de vues</div>
+                <div className="text-xs text-white/40">Visible par les acheteurs sur la fiche produit</div>
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showViewCount}
+              onClick={() => setShowViewCount((v) => !v)}
+              className={`relative h-6 w-11 flex-shrink-0 rounded-full transition ${showViewCount ? 'campus-gradient' : 'bg-white/15'}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${showViewCount ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+          </label>
 
           <button
             type="submit"

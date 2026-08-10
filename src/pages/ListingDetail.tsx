@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  ArrowLeft, Star, MapPin, Clock, Zap, Tag, Shield, ShoppingBag, Palette,
+  ArrowLeft, Star, MapPin, Clock, Zap, Tag, Shield, ShoppingBag, Palette, Eye,
   BadgeCheck, Award, MessageSquare, Flag, Send, Handshake, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -56,11 +56,11 @@ export function ListingDetail({ listingId, navigate }: ListingDetailProps) {
       .limit(10);
     setReviews((revData as ListingReview[]) || []);
 
-    // Increment view count
-    await supabase
-      .from('listings')
-      .update({ view_count: ((data as ListingWithRelations).view_count || 0) + 1 })
-      .eq('id', listingId);
+    // Incrémente la vue via la RPC atomique — un UPDATE direct sur
+    // view_count échoue silencieusement depuis que cette colonne a été
+    // verrouillée contre les écritures directes (anti-triche). Le compteur
+    // n'incrémentait donc plus du tout jusqu'à ce correctif.
+    await supabase.rpc('increment_listing_view', { p_listing_id: listingId });
 
     setLoading(false);
   }, [listingId]);
@@ -273,6 +273,11 @@ export function ListingDetail({ listingId, navigate }: ListingDetailProps) {
             <h1 className="text-2xl font-bold tracking-tight">{listing.title}</h1>
             {listing.condition && (
               <p className="mt-1 text-sm text-white/40">État: {listing.condition}</p>
+            )}
+            {listing.show_view_count && (
+              <p className="mt-1 flex items-center gap-1 text-xs text-white/30">
+                <Eye className="h-3 w-3" /> {listing.view_count} vue{listing.view_count > 1 ? 's' : ''}
+              </p>
             )}
           </div>
 

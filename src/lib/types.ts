@@ -121,6 +121,7 @@ export interface Listing {
   total_boost_budget_usd: number | null;
   status: ListingStatus;
   view_count: number;
+  show_view_count: boolean;
   created_at: string;
   updated_at: string;
 }

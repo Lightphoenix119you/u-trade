@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   LayoutDashboard, Building2, DollarSign, Shield, Settings, Image as ImageIcon,
   Plus, Edit2, Save, X, Trash2, Check, TrendingUp, Wallet,
-  Users, Flag, Ban, AlertTriangle, Package, MessageCircle, PauseCircle, UserCog, ShieldOff, Search, MapPin, ThumbsUp,
+  Users, Flag, Ban, AlertTriangle, Package, MessageCircle, PauseCircle, UserCog, ShieldOff, Search, MapPin, ThumbsUp, Gift,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -19,7 +19,7 @@ interface AdminProps {
   setFlash: (flash: { type: 'error' | 'success' | 'info'; message: string }) => void;
 }
 
-type AdminTab = 'overview' | 'campuses' | 'financial' | 'moderation' | 'team' | 'users' | 'meeting-points' | 'settings' | 'ads';
+type AdminTab = 'overview' | 'campuses' | 'financial' | 'moderation' | 'team' | 'users' | 'meeting-points' | 'referrals' | 'settings' | 'ads';
 
 export function AdminPage({ navigate, setFlash }: AdminProps) {
   const { profile, loading } = useAuth();
@@ -72,6 +72,7 @@ export function AdminPage({ navigate, setFlash }: AdminProps) {
     { key: 'team', label: 'Équipe & Modération', icon: Users, superAdminOnly: true },
     { key: 'users', label: 'Utilisateurs', icon: UserCog, superAdminOnly: true },
     { key: 'meeting-points', label: 'Points de rendez-vous', icon: MapPin, superAdminOnly: true },
+    { key: 'referrals', label: 'Parrainage', icon: Gift, superAdminOnly: true },
     { key: 'settings', label: 'Paramètres', icon: Settings, superAdminOnly: true },
     { key: 'ads', label: 'Publicités', icon: ImageIcon },
   ];
@@ -109,6 +110,7 @@ export function AdminPage({ navigate, setFlash }: AdminProps) {
       {tab === 'team' && isSuperAdmin && <TeamTab setError={setError} setMsg={setMsg} />}
       {tab === 'users' && isSuperAdmin && <UsersTab setError={setError} setMsg={setMsg} />}
       {tab === 'meeting-points' && isSuperAdmin && <MeetingPointsAdminTab setError={setError} setMsg={setMsg} />}
+      {tab === 'referrals' && isSuperAdmin && <ReferralsAdminTab setError={setError} setMsg={setMsg} />}
       {tab === 'settings' && isSuperAdmin && <SettingsTab setError={setError} setMsg={setMsg} refresh={refreshSettings} />}
       {tab === 'ads' && <AdsTab setError={setError} setMsg={setMsg} isSuperAdmin={isSuperAdmin} campusId={profile.campus_id} />}
     </div>
@@ -1596,6 +1598,139 @@ function MeetingPointsAdminTab({ setError, setMsg }: { setError: (s: string | nu
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ============================================================
+// PARRAINAGE (campagne + suivi)
+// ============================================================
+interface ReferralOverviewRow {
+  id: string;
+  full_name: string;
+  referral_code: string;
+  referral_count: number;
+  referral_benefits_until: string | null;
+  benefits_active: boolean;
+}
+
+function ReferralsAdminTab({ setError, setMsg }: { setError: (s: string | null) => void; setMsg: (s: string | null) => void }) {
+  const { settings } = useCampus();
+  const [rows, setRows] = useState<ReferralOverviewRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [active, setActive] = useState(true);
+  const [benefitDays, setBenefitDays] = useState(30);
+  const [discountPercent, setDiscountPercent] = useState(0.02);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!settings) return;
+    setActive(settings.referral_campaign_active);
+    setBenefitDays(settings.referral_benefit_days);
+    setDiscountPercent(settings.referral_discount_percent);
+  }, [settings]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data, error: err } = await supabase.rpc('get_referral_overview');
+    if (err) { setError(err.message); } else { setRows((data as ReferralOverviewRow[]) || []); }
+    setLoading(false);
+  }, [setError]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const saveSettings = async () => {
+    setError(null);
+    setSaving(true);
+    const { error: err } = await supabase.rpc('update_referral_settings', {
+      p_active: active,
+      p_benefit_days: benefitDays,
+      p_discount_percent: discountPercent,
+    });
+    setSaving(false);
+    if (err) { setError(err.message); return; }
+    setMsg('Réglages de parrainage mis à jour');
+  };
+
+  return (
+    <div className="space-y-4">
+      <GlassCard className="p-5" strong>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Campagne de parrainage</h3>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={active}
+            onClick={() => setActive((v) => !v)}
+            className={`relative h-6 w-11 flex-shrink-0 overflow-hidden rounded-full transition ${active ? 'campus-gradient' : 'bg-white/15'}`}
+          >
+            <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${active ? 'translate-x-[18px]' : 'translate-x-0'}`} />
+          </button>
+        </div>
+        <p className="mb-3 text-xs text-white/40">
+          Désactivée, les codes restent utilisables (liés pour le suivi) mais ne déclenchent plus de récompense pour le parrain.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs text-white/50">Durée de l'avantage (jours)</label>
+            <input
+              type="number"
+              min={1}
+              value={benefitDays}
+              onChange={(e) => setBenefitDays(Number(e.target.value))}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-white/50">Réduction de commission (0-1)</label>
+            <input
+              type="number"
+              step="0.01"
+              min={0}
+              max={1}
+              value={discountPercent}
+              onChange={(e) => setDiscountPercent(Number(e.target.value))}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none"
+            />
+            <p className="mt-1 text-xs text-white/30">-{(discountPercent * 100).toFixed(0)} points de commission pendant l'avantage</p>
+          </div>
+        </div>
+        <button
+          onClick={saveSettings}
+          disabled={saving}
+          className="campus-gradient mt-4 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          {saving ? 'Enregistrement...' : 'Enregistrer'}
+        </button>
+      </GlassCard>
+
+      <div>
+        <h3 className="mb-2 text-sm font-semibold text-white/70">Parrainages actifs</h3>
+        {loading ? (
+          <p className="text-sm text-white/40">Chargement...</p>
+        ) : rows.length === 0 ? (
+          <p className="text-sm text-white/40">Aucun parrainage pour le moment</p>
+        ) : (
+          <div className="space-y-2">
+            {rows.map((r) => (
+              <GlassCard key={r.id} className="p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">{r.full_name}</div>
+                    <div className="font-mono text-xs text-white/40">{r.referral_code}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold">{r.referral_count} filleul{r.referral_count > 1 ? 's' : ''}</div>
+                    <span className={`text-[11px] ${r.benefits_active ? 'text-emerald-300' : 'text-white/30'}`}>
+                      {r.benefits_active ? 'Avantage actif' : 'Aucun avantage actif'}
+                    </span>
+                  </div>
+                </div>
+              </GlassCard>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

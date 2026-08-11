@@ -9,7 +9,7 @@ interface AuthState {
   profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, fullName: string, phone: string, campusId: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, fullName: string, phone: string, campusId: string | null, referralCode?: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -102,11 +102,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = useCallback(
-    async (email: string, password: string, fullName: string, phone: string, campusId: string | null) => {
+    async (email: string, password: string, fullName: string, phone: string, campusId: string | null, referralCode?: string) => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: fullName, phone, campus_id: campusId } },
+        options: { data: { full_name: fullName, phone, campus_id: campusId, referral_code: referralCode?.trim() || null } },
       });
       if (error) return { error: error.message };
       if (data.user) {

@@ -79,6 +79,10 @@ export interface Profile {
   is_certified_creator: boolean;
   total_sales: number;
   total_reviews: number;
+  referral_code: string | null;
+  referred_by: string | null;
+  referral_benefits_until: string | null;
+  referral_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -282,6 +286,10 @@ export interface AppSettings {
   commission_tier_mid: number;
   commission_tier_mid_threshold: number;
   commission_tier_custom: number;
+  guest_fee_extra_percent: number;
+  referral_campaign_active: boolean;
+  referral_benefit_days: number;
+  referral_discount_percent: number;
   boost_price_usd: number;
   verified_badge_price_usd: number;
   urgent_price_usd: number;

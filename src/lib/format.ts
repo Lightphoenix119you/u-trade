@@ -57,6 +57,7 @@ export function computeCommission(
   isCustom: boolean,
   settings: AppSettings | null,
   isGuest = false,
+  hasActiveReferralBenefit = false,
 ): { rate: number; commission: number; payout: number } {
   const s = settings;
   if (!s) return { rate: 0, commission: 0, payout: priceUSD };
@@ -72,6 +73,12 @@ export function computeCommission(
   // qu'un étudiant du même palier de prix, plus la surtaxe.
   if (isGuest) {
     rate += s.guest_fee_extra_percent;
+  }
+  // Réduction de parrainage : s'applique après la surtaxe invité, jamais
+  // sous zéro (Math.max) — un vendeur invité ET parrain paie la surtaxe
+  // réduite du bonus, pas l'un ou l'autre exclusivement.
+  if (hasActiveReferralBenefit) {
+    rate = Math.max(0, rate - s.referral_discount_percent);
   }
   const commission = Math.round(priceUSD * rate * 100) / 100;
   const payout = Math.round((priceUSD - commission) * 100) / 100;
